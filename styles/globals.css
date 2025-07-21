@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 254 250 224;
+    --foreground: 10 64 12;
+    --primary: 27 60 83;
+    --primary-foreground: 249 243 239;
+    --green-50: 254 250 224;
+    --green-100: 177 171 134;
+    --green-600: 129 144 103;
+    --green-700: 10 64 12;
+    --blue-50: 249 243 239;
+    --blue-100: 210 193 182;
+    --blue-500: 69 104 130;
+    --blue-600: 27 60 83;
+    --gradient: linear-gradient(135deg, #1b3c53 0%, #456882 100%);
+  }
+
+  * {
+    border-color: hsl(210 193 182 / 0.5);
+  }
+
+  body {
+    background: linear-gradient(135deg, #fefae0 0%, #f9f3ef 25%, #fefae0 50%, #f9f3ef 100%);
+    min-height: 100vh;
+    color: hsl(var(--foreground));
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 bg-clip-text text-transparent;
+  }
+
+  .bg-gradient-blue {
+    background: linear-gradient(135deg, #1b3c53 0%, #456882 100%);
+  }
+
+  .bg-gradient-card {
+    background: linear-gradient(135deg, #1b3c53 0%, #456882 100%);
+    border-radius: 24px;
+  }
+
+  .circular-gradient {
+    background: radial-gradient(circle at 20% 80%, #fefae0 0%, #f9f3ef 100%);
+  }
+
+  .card {
+    @apply bg-white rounded-3xl p-6 shadow-xl shadow-blue-100/50 border border-blue-100;
+  }
+
+  .card-hover {
+    @apply hover:shadow-2xl hover:shadow-blue-200/50 hover:-translate-y-1 transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold py-4 px-8 rounded-2xl hover:from-blue-700 hover:to-blue-600 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-blue-600 font-semibold py-4 px-8 rounded-2xl border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200;
+  }
+
+  .form-input {
+    @apply w-full px-6 py-4 border-2 border-blue-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-200 text-green-700;
+  }
+
+  .form-label {
+    @apply block text-sm font-semibold text-green-700 mb-3;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .badge-success {
+    @apply bg-green-100 text-green-700;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-blue {
+    @apply bg-blue-100 text-blue-600;
+  }
+
+  .text-gold-600 {
+    color: #d97706;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-gradient {
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f9f3ef;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d2c1b6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #456882;
+}
+
+/* 3D Flip effect utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-gpu {
+  transform: translateZ(0);
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Flip text animation */
+@keyframes flipText {
+  0% {
+    transform: rotateX(90deg);
+    opacity: 0;
+  }
+  50% {
+    transform: rotateX(0deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.flip-text-animation {
+  transform-origin: center;
+  transform-style: preserve-3d;
+}
+
+/* Gradient Icon Styles */
+.gradient-icon svg {
+  background: linear-gradient(135deg, #1b3c53, #456882);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Alternative approach for better compatibility */
+.gradient-icon {
+  background: linear-gradient(135deg, #1b3c53, #456882);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  width: fit-content;
+  height: fit-content;
+}
