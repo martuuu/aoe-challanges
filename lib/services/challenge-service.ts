@@ -27,7 +27,17 @@ export interface ChallengeWithUsers extends Challenge {
 export const challengeService = {
   // Crear un nuevo desafío
   async createChallenge(data: CreateChallengeData): Promise<Challenge> {
-    const expiresAt = data.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 1 semana por defecto
+    // Determinar el tiempo de expiración según el tipo
+    let expiresAt: Date
+    if (data.expiresAt) {
+      expiresAt = data.expiresAt
+    } else if (data.type === 'SUGGESTION') {
+      // Sugerencias expiran en 2 semanas
+      expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    } else {
+      // Desafíos individuales expiran en 1 semana
+      expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    }
 
     return await prisma.challenge.create({
       data: {

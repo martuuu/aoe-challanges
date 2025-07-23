@@ -199,7 +199,10 @@ export function ActionButtons({
             </div>
             <Button
               onClick={() => {
-                console.log('Botón Crear Sugerencia clickeado!', { selectedChallenger, selectedChallenged })
+                console.log('Botón Crear Sugerencia clickeado!', {
+                  selectedChallenger,
+                  selectedChallenged,
+                })
                 createSuggestion()
               }}
               disabled={!selectedChallenger || !selectedChallenged}

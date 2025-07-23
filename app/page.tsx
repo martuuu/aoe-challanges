@@ -183,7 +183,7 @@ export default function AOEPyramid() {
       user,
       selectedChallenged,
       userValidation: !user || !selectedChallenged,
-      allUsers: allUsers.length
+      allUsers: allUsers.length,
     })
 
     if (!user || !selectedChallenged) {
@@ -195,9 +195,9 @@ export default function AOEPyramid() {
     try {
       setIsLoading(true)
       console.log('Buscando usuario desafiado...')
-      
+
       const challengedUser = allUsers.find(u => u.alias === selectedChallenged)
-      
+
       console.log('Usuario desafiado encontrado:', challengedUser)
 
       if (!challengedUser) {
@@ -215,10 +215,10 @@ export default function AOEPyramid() {
 
       console.log('Respuesta de la API:', result)
       console.log(`Desafío individual creado: ${user.alias} vs ${selectedChallenged}`)
-      
+
       // Mostrar mensaje de éxito antes de recargar
       alert(`¡Desafío creado exitosamente! ${user.alias} vs ${selectedChallenged}`)
-      
+
       setIsDialogOpen(false)
       setSelectedChallenger('')
       setSelectedChallenged('')
@@ -227,7 +227,9 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando desafío:', error)
-      alert(`Error creando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      alert(
+        `Error creando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      )
     } finally {
       setIsLoading(false)
     }
@@ -238,7 +240,7 @@ export default function AOEPyramid() {
       selectedChallenger,
       selectedChallenged,
       allUsers: allUsers.length,
-      firstValidation: !selectedChallenger || !selectedChallenged
+      firstValidation: !selectedChallenger || !selectedChallenged,
     })
 
     if (!selectedChallenger || !selectedChallenged) {
@@ -250,7 +252,7 @@ export default function AOEPyramid() {
     try {
       setIsLoading(true)
       console.log('Buscando usuarios en allUsers...')
-      
+
       const challengerUser = allUsers.find(u => u.alias === selectedChallenger)
       const challengedUser = allUsers.find(u => u.alias === selectedChallenged)
 
@@ -271,10 +273,10 @@ export default function AOEPyramid() {
 
       console.log('Respuesta de la API:', result)
       console.log(`Sugerencia de desafío creada: ${selectedChallenger} vs ${selectedChallenged}`)
-      
+
       // Mostrar mensaje de éxito antes de recargar
       alert(`¡Sugerencia creada exitosamente! ${selectedChallenger} vs ${selectedChallenged}`)
-      
+
       setIsSuggestDialogOpen(false)
       setSelectedChallenger('')
       setSelectedChallenged('')
@@ -283,7 +285,9 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando sugerencia:', error)
-      alert(`Error creando sugerencia: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      alert(
+        `Error creando sugerencia: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      )
     } finally {
       setIsLoading(false)
     }
@@ -293,7 +297,7 @@ export default function AOEPyramid() {
     console.log('acceptChallenge llamada - Debug Info:', {
       challengeId,
       action,
-      allUsers: allUsers.length
+      allUsers: allUsers.length,
     })
 
     try {
@@ -309,7 +313,10 @@ export default function AOEPyramid() {
       } else if (action === 'reject') {
         // Rechazar desafío
         console.log('Rechazando desafío...')
-        const result = await clientChallengeService.rejectChallenge(challengeId, 'Rechazado por el usuario')
+        const result = await clientChallengeService.rejectChallenge(
+          challengeId,
+          'Rechazado por el usuario'
+        )
         console.log('Respuesta API reject:', result)
         console.log(`Desafío ${challengeId} rechazado`)
         alert(`Desafío rechazado`)
@@ -340,7 +347,9 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error procesando desafío:', error)
-      alert(`Error procesando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      alert(
+        `Error procesando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      )
     } finally {
       setIsLoading(false)
     }
@@ -350,7 +359,7 @@ export default function AOEPyramid() {
     console.log('confirmWinner llamada - Debug Info:', {
       challengeId,
       winner,
-      allUsers: allUsers.length
+      allUsers: allUsers.length,
     })
 
     try {
@@ -358,7 +367,7 @@ export default function AOEPyramid() {
 
       console.log('Buscando usuario ganador...')
       const winnerUser = allUsers.find(u => u.alias === winner)
-      
+
       if (!winnerUser) {
         console.error('Usuario ganador no encontrado:', winner)
         alert('Error: Usuario ganador no encontrado')
@@ -367,12 +376,12 @@ export default function AOEPyramid() {
 
       console.log('Usuario ganador encontrado:', winnerUser)
       console.log('Enviando petición para completar desafío...')
-      
+
       const result = await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
-      
+
       console.log('Respuesta API confirmWinner:', result)
       console.log(`Ganador confirmado para desafío ${challengeId}: ${winner}`)
-      
+
       alert(`¡Ganador confirmado exitosamente! ${winner}`)
 
       // Recargar datos después de confirmar
@@ -380,7 +389,9 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error confirmando ganador:', error)
-      alert(`Error confirmando ganador: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      alert(
+        `Error confirmando ganador: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      )
     } finally {
       setIsLoading(false)
     }
@@ -395,7 +406,7 @@ export default function AOEPyramid() {
       team1,
       team2,
       winner,
-      validTeams: team1.length > 0 && team2.length > 0
+      validTeams: team1.length > 0 && team2.length > 0,
     })
 
     if (!team1.length || !team2.length) {
@@ -420,7 +431,11 @@ export default function AOEPyramid() {
       )
 
       // Mostrar mensaje de éxito antes de recargar
-      alert(`¡Partida grupal creada exitosamente!\n${team1.join(', ')} vs ${team2.join(', ')}\nGanador: Equipo ${winner === 'team1' ? '1' : '2'}`)
+      alert(
+        `¡Partida grupal creada exitosamente!\n${team1.join(', ')} vs ${team2.join(
+          ', '
+        )}\nGanador: Equipo ${winner === 'team1' ? '1' : '2'}`
+      )
 
       setIsGroupMatchDialogOpen(false)
 
@@ -428,7 +443,11 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando partida grupal:', error)
-      alert(`Error creando partida grupal: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      alert(
+        `Error creando partida grupal: ${
+          error instanceof Error ? error.message : 'Error desconocido'
+        }`
+      )
     } finally {
       setIsLoading(false)
     }
@@ -498,8 +517,10 @@ export default function AOEPyramid() {
           recentChallenges={recentChallenges}
           recentMatches={recentMatches}
           acceptedChallenges={realAcceptedChallenges}
+          acceptChallenge={acceptChallenge}
           confirmWinner={confirmWinner}
           formatTimeAgo={formatTimeAgo}
+          formatTimeRemaining={formatTimeRemaining}
         />
       </div>
     </div>

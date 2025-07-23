@@ -20,10 +20,10 @@ async function main() {
 
   // Crear todos los usuarios de initial-users.ts
   console.log('Creating users from initial-users.ts...')
-  
+
   for (const userData of initialUsers) {
     const hashedPassword = await bcrypt.hash(userData.password, 10)
-    
+
     const user = await prisma.user.create({
       data: {
         email: userData.email,
@@ -38,8 +38,10 @@ async function main() {
         totalMatches: userData.wins + userData.losses,
       },
     })
-    
-    console.log(`Created user: ${user.name} (${user.alias}) - Email: ${user.email} - Password: ${userData.password}`)
+
+    console.log(
+      `Created user: ${user.name} (${user.alias}) - Email: ${user.email} - Password: ${userData.password}`
+    )
   }
 
   // Crear algunos desafíos de ejemplo
@@ -48,7 +50,7 @@ async function main() {
 
   if (users.length >= 2) {
     console.log('Creating sample challenges...')
-    
+
     await prisma.challenge.create({
       data: {
         challengerId: users[0].id,
@@ -73,7 +75,7 @@ async function main() {
   }
 
   console.log('Database seeded successfully!')
-  
+
   // Mostrar resumen de contraseñas
   console.log('')
   console.log('User Credentials Summary:')

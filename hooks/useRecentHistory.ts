@@ -6,10 +6,11 @@ export interface RecentChallenge {
   id: string
   challenger: string
   challenged: string
-  status: 'pending' | 'accepted' | 'completed' | 'expired'
+  status: 'pending' | 'accepted' | 'completed' | 'expired' | 'rejected' | 'cancelled'
   created_at: string
   expires_at: string
   winner?: string
+  type?: string
 }
 
 export interface RecentMatch {
@@ -55,6 +56,7 @@ export function useRecentHistory() {
           expires_at?: string
           expiresAt?: string
           winner?: string
+          type?: string
         }
 
         const formattedChallenges: RecentChallenge[] = challenges.map(
@@ -72,10 +74,13 @@ export function useRecentHistory() {
               | 'pending'
               | 'accepted'
               | 'completed'
-              | 'expired',
+              | 'expired'
+              | 'rejected'
+              | 'cancelled',
             created_at: challenge.created_at || challenge.createdAt || '',
             expires_at: challenge.expires_at || challenge.expiresAt || '',
             winner: challenge.winner,
+            type: challenge.type,
           })
         )
 
