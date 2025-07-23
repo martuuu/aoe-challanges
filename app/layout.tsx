@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
+import { AuthProvider } from '@/hooks/useAuth'
 
 export const metadata: Metadata = {
   title: 'AoE Historial - Liga de Age of Empires',
@@ -22,7 +23,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
       </body>
     </html>

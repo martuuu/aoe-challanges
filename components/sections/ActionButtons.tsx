@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DragDropGroupMatch } from '@/components/DragDropGroupMatch'
+import { useAuth } from '@/hooks/useAuth'
 
 interface ActionButtonsProps {
   isDialogOpen: boolean
@@ -55,70 +56,75 @@ export function ActionButtons({
   createSuggestion = () => {},
   handleCreateGroupMatch,
 }: ActionButtonsProps) {
+  const { user } = useAuth()
+
   return (
     <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-          <Button size="lg" className="bg-[#819067] hover:bg-[#0A400C] text-white shadow-lg w-full sm:w-auto">
+          <Button
+            size="lg"
+            className="bg-[#819067] hover:bg-[#0A400C] text-white shadow-lg w-full sm:w-auto"
+            disabled={!user}
+          >
             <Swords className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Desafío Individual
           </Button>
         </DialogTrigger>
         <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:w-auto max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-green-700 text-lg sm:text-xl">Nuevo Desafío Individual</DialogTitle>
-            <DialogDescription className="text-blue-600 text-sm">El desafiado tendrá 24 horas para responder</DialogDescription>
+            <DialogTitle className="text-green-700 text-lg sm:text-xl">
+              Nuevo Desafío Individual
+            </DialogTitle>
+            <DialogDescription className="text-blue-600 text-sm">
+              {user
+                ? `${user.alias} desafiará al oponente seleccionado. El desafiado tendrá 24 horas para responder.`
+                : 'Debes iniciar sesión para crear desafíos.'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4">
-            <div>
-              <Label className="text-sm font-medium text-green-700 mb-1 block">Desafiante</Label>
-              <Select value={selectedChallenger} onValueChange={setSelectedChallenger}>
-                <SelectTrigger className="w-full border-green-200 focus:border-green-400 focus:ring-green-200">
-                  <SelectValue placeholder="Selecciona el desafiante" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allPlayers.map(player => (
-                    <SelectItem key={player} value={player}>
-                      {player}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-green-700 mb-1 block">Oponente</Label>
-              <Select
-                value={selectedChallenged}
-                onValueChange={setSelectedChallenged}
-                disabled={!selectedChallenger}
-              >
-                <SelectTrigger className="w-full border-green-200 focus:border-green-400 focus:ring-green-200 disabled:bg-gray-50">
-                  <SelectValue placeholder="Selecciona el oponente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedChallenger &&
-                    getAvailableOpponents(selectedChallenger).map(player => (
-                      <SelectItem key={player} value={player}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{player}</span>
-                          {getHeadToHead(selectedChallenger, player) !== '0-0' && (
-                            <span className="text-blue-500 ml-2 text-xs">
-                              ({getHeadToHead(selectedChallenger, player)})
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              onClick={createChallenge}
-              disabled={!selectedChallenger || !selectedChallenged}
-              className="w-full bg-[#819067] hover:bg-[#0A400C] text-white h-10 sm:h-11"
-            >
-              Crear Desafío
-            </Button>
+            {user && (
+              <>
+                <div>
+                  <Label className="text-sm font-medium text-green-700 mb-1 block">
+                    Desafiante
+                  </Label>
+                  <div className="w-full p-2 border border-green-200 rounded-md bg-green-50 text-green-800 font-medium">
+                    {user.alias} (Tú)
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-green-700 mb-1 block">Oponente</Label>
+                  <Select value={selectedChallenged} onValueChange={setSelectedChallenged}>
+                    <SelectTrigger className="w-full border-green-200 focus:border-green-400 focus:ring-green-200">
+                      <SelectValue placeholder="Selecciona tu oponente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {user &&
+                        getAvailableOpponents(user.alias).map(player => (
+                          <SelectItem key={player} value={player}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{player}</span>
+                              {getHeadToHead(user.alias, player) !== '0-0' && (
+                                <span className="text-blue-500 ml-2 text-xs">
+                                  ({getHeadToHead(user.alias, player)})
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={createChallenge}
+                  disabled={!selectedChallenged}
+                  className="w-full bg-[#819067] hover:bg-[#0A400C] text-white h-10 sm:h-11"
+                >
+                  Crear Desafío
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -136,8 +142,12 @@ export function ActionButtons({
         </DialogTrigger>
         <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:w-auto max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-orange-600 text-lg sm:text-xl">Sugerir Desafío</DialogTitle>
-            <DialogDescription className="text-blue-600 text-sm">Ambos jugadores deberán aceptar la sugerencia</DialogDescription>
+            <DialogTitle className="text-orange-600 text-lg sm:text-xl">
+              Sugerir Desafío
+            </DialogTitle>
+            <DialogDescription className="text-blue-600 text-sm">
+              Sugiere un desafío entre dos jugadores. Ambos deberán aceptar la sugerencia.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4">
             <div>
@@ -204,7 +214,9 @@ export function ActionButtons({
         </DialogTrigger>
         <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-green-700 text-lg sm:text-xl">Cargar Resultado de Partida en Grupo</DialogTitle>
+            <DialogTitle className="text-green-700 text-lg sm:text-xl">
+              Cargar Resultado de Partida en Grupo
+            </DialogTitle>
             <DialogDescription className="text-blue-600 text-sm">
               Arrastra jugadores para formar equipos y selecciona el ganador
             </DialogDescription>

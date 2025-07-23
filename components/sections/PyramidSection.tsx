@@ -1,28 +1,18 @@
-import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { UserPlus, Crown } from 'lucide-react'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { LogIn, Crown } from 'lucide-react'
+import { LoginForm } from '@/components/LoginForm'
+import { useAuth } from '@/hooks/useAuth'
 
 interface PyramidSectionProps {
   pyramid: { 1: string[]; 2: string[]; 3: string[]; 4: string[] }
   setPyramid: React.Dispatch<
     React.SetStateAction<{ 1: string[]; 2: string[]; 3: string[]; 4: string[] }>
   >
-  userForm: { name: string; email: string }
-  setUserForm: React.Dispatch<React.SetStateAction<{ name: string; email: string }>>
-  isUserDialogOpen: boolean
-  setIsUserDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
-  addUser: () => void
+  isLoginDialogOpen: boolean
+  setIsLoginDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 const levelInfo = {
@@ -62,77 +52,52 @@ const levelInfo = {
 
 export function PyramidSection({
   pyramid,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setPyramid,
-  userForm,
-  setUserForm,
-  isUserDialogOpen,
-  setIsUserDialogOpen,
-  addUser,
+  isLoginDialogOpen,
+  setIsLoginDialogOpen,
 }: PyramidSectionProps) {
+  const { user } = useAuth()
+
+  const handleLoginSuccess = () => {
+    setIsLoginDialogOpen(false)
+    // Aquí podrías recargar la página o actualizar el estado
+    window.location.reload()
+  }
+
   return (
     <Card className="shadow-card">
-      {}
       <CardHeader className="bg-gradient-to-r from-[#819067] to-[#B1AB86] text-white rounded-t-xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-white">
-              <UserPlus className="w-5 h-5 sm:w-6 sm:h-6" />
+              <Crown className="w-5 h-5 sm:w-6 sm:h-6" />
               Ranking 2025
             </CardTitle>
             <CardDescription className="text-white text-sm">
-              Los jugadores pueden desafiar a su mismo nivel o 1 nivel superior. Estan obligados a aceptar el desafío de los niveles inferiores.
+              Los jugadores pueden desafiar a su mismo nivel o 1 nivel superior. Están obligados a
+              aceptar el desafío de los niveles inferiores.
             </CardDescription>
           </div>
 
-          {/* Botón agregar jugador */}
-          <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="sm:size-lg w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-              >
-                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Agregar Jugador
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="mx-4 sm:mx-0">
-              <DialogHeader>
-                <DialogTitle>Agregar Nuevo Jugador</DialogTitle>
-                <DialogDescription>
-                  Los nuevos jugadores empiezan en el nivel Guerreros
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Input
-                    id="name"
-                    value={userForm.name}
-                    onChange={e => setUserForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ingresa tu nombre"
-                    className="form-input"
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={userForm.email}
-                    onChange={e => setUserForm(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="tu@email.com"
-                    className="form-input"
-                  />
-                </div>
+          {/* Botón ingresar como jugador - Solo si no está logueado */}
+          {!user && (
+            <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
+              <DialogTrigger asChild>
                 <Button
-                  onClick={addUser}
-                  disabled={!userForm.name || !userForm.email}
-                  className="w-full"
+                  variant="outline"
+                  size="sm"
+                  className="sm:size-lg w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
                 >
-                  Agregar Jugador
+                  <LogIn className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  Ingresar como Jugador
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="mx-4 sm:mx-0 max-w-lg">
+                <LoginForm onSuccess={handleLoginSuccess} />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </CardHeader>
       <CardContent className="p-6 sm:p-8 bg-gradient-to-br from-green-50/30 to-blue-50/30">
@@ -162,7 +127,7 @@ export function PyramidSection({
 
                 {/* Contenedor de jugadores */}
                 <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-                  {players.map((player, index) => (
+                  {players.map(player => (
                     <div
                       key={player}
                       className={`

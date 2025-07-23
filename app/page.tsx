@@ -7,126 +7,139 @@ import { StatsWidgets } from '@/components/sections/StatsWidgets'
 import { ActionButtons } from '@/components/sections/ActionButtons'
 import { ChallengesSection } from '@/components/sections/ChallengesSection'
 import { HistorySection } from '@/components/sections/HistorySection'
+import { UserInfo } from '@/components/UserInfo'
+import { useAuth } from '@/hooks/useAuth'
+import { useMonthlyStats } from '@/hooks/useMonthlyStats'
+import { usePendingChallenges } from '@/hooks/usePendingChallenges'
+import { useRecentHistory } from '@/hooks/useRecentHistory'
+import { useAcceptedChallenges } from '@/hooks/useAcceptedChallenges'
+import {
+  clientChallengeService,
+  clientMatchService,
+  clientUserService,
+} from '@/lib/services/client-services'
+import { initialUsers } from '@/lib/initial-users'
+import { mockData } from '@/lib/mock-data'
+// Importar las contraseñas para desarrollo (mostrar en consola)
+import '@/lib/dev-passwords'
 
-// Jugadores distribuidos aleatoriamente en la pirámide
+// Actualizar pirámide con los nuevos usuarios (todos empiezan en nivel 3)
 const initialPyramid = {
-  1: ['Chino'], // Rey de la pirámide
-  2: ['Ruso', 'Mosca'], // Segundo escalón
-  3: ['Tincho', 'Pana', 'Chaquinha'], // Tercer escalón
-  4: ['Dany', 'Bicho', 'Seba', 'Tata', 'Mati'], // Base de la pirámide
-}
-
-interface Challenge {
-  id: string
-  challenger: string
-  challenged: string
-  status: 'pending' | 'accepted' | 'completed' | 'expired'
-  created_at: string
-  expires_at: string
-  winner?: string
-}
-
-interface Match {
-  id: string
-  winner: string
-  loser: string
-  created_at: string
-  type: 'challenge' | 'group'
-  team1?: string[]
-  team2?: string[]
-  winning_team?: 'team1' | 'team2'
+  1: [] as string[], // Nadie al principio
+  2: [] as string[], // Nadie al principio
+  3: initialUsers.map(user => user.alias), // Todos empiezan aquí
+  4: [] as string[], // Nadie al principio
 }
 
 export default function AOEPyramid() {
+  const { user } = useAuth()
+
+  // Hooks para datos reales - HABILITADOS ahora que Supabase funciona
+  const { stats: monthlyStats } = useMonthlyStats()
+  const { challenges: pendingChallengesFromHook } = usePendingChallenges(user?.id?.toString())
+  const { recentChallenges: recentChallengesFromHook, recentMatches: recentMatchesFromHook } = useRecentHistory()
+  const { challenges: acceptedChallenges, refetch: refetchAccepted } = useAcceptedChallenges()
+
+  // Eliminar las variables fallback no utilizadas - usar mock solo en caso de error
+
   const [pyramid, setPyramid] = useState(initialPyramid)
   const [selectedChallenger, setSelectedChallenger] = useState('')
   const [selectedChallenged, setSelectedChallenged] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isGroupMatchDialogOpen, setIsGroupMatchDialogOpen] = useState(false)
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSuggestDialogOpen, setIsSuggestDialogOpen] = useState(false)
-  const [userForm, setUserForm] = useState({ name: '', email: '' })
-  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false)
 
-  // Datos simulados para los desafíos
-  const [recentChallenges] = useState<Challenge[]>([
-    {
-      id: '1',
-      challenger: 'Dany',
-      challenged: 'Pana',
-      status: 'pending',
-      created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '2',
-      challenger: 'Bicho',
-      challenged: 'Tincho',
-      status: 'completed',
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      expires_at: new Date(Date.now() + 22 * 60 * 60 * 1000).toISOString(),
-      winner: 'Bicho',
-    },
-    {
-      id: '3',
-      challenger: 'Ruso',
-      challenged: 'Mosca',
-      status: 'pending',
-      created_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-      expires_at: new Date(Date.now() + 16 * 60 * 60 * 1000).toISOString(),
-      winner: undefined,
-    },
-  ])
+  // Estados para datos reales
+  const [allUsers, setAllUsers] = useState<{ id: string; alias: string; level: number }[]>([])
+  // Estado de carga para operaciones async
+  const [, setIsLoading] = useState(false)
 
-  // Datos simulados para las partidas
-  const [recentMatches] = useState<Match[]>([
-    {
-      id: '1',
-      winner: 'Chino',
-      loser: 'Ruso',
-      created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      type: 'challenge',
-    },
-    {
-      id: '2',
-      winner: '',
-      loser: '',
-      created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-      type: 'group',
-      team1: ['Tincho', 'Pana'],
-      team2: ['Dany', 'Bicho'],
-      winning_team: 'team1',
-    },
-  ])
+  // Cargar usuarios al inicializar
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setIsLoading(true)
+        const users = await clientUserService.getAllUsers()
+        setAllUsers(
+          users.map((u: { id: string; alias: string; level: number }) => ({
+            id: u.id,
+            alias: u.alias,
+            level: u.level,
+          }))
+        )
+      } catch (error) {
+        console.error('Error cargando usuarios:', error)
+        // Fallback a usuarios iniciales si falla la DB
+        setAllUsers(initialUsers.map(u => ({ id: u.id.toString(), alias: u.alias, level: 3 })))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadUsers()
+  }, [])
 
   const allPlayers = Object.values(pyramid).flat()
 
-  // Estadísticas del mes
-  const monthStats = {
-    topWinner: { name: 'Chino', wins: 8 },
-    topLoser: { name: 'Mati', losses: 6 },
-    bestStreak: { name: 'Ruso', streak: 4 },
-    mostClimbed: { name: 'Tincho', positions: 2 },
-  }
-
-  // Desafíos pendientes
-  const pendingChallenges = recentChallenges.filter(challenge => challenge.status === 'pending')
+  // Usar datos reales con fallback a mock si no están disponibles
+  const recentChallenges = recentChallengesFromHook || mockData.recentChallenges || []
+  const recentMatches = recentMatchesFromHook || mockData.recentMatches || []
+  const pendingChallenges = pendingChallengesFromHook || mockData.pendingChallenges || []
+  const monthStats = monthlyStats || mockData.monthStats || null
+  const realAcceptedChallenges = acceptedChallenges || mockData.acceptedChallenges || []
+  const realRefetchAccepted = refetchAccepted || (() => console.log('Mock refetch accepted challenges'))
 
   // Funciones de utilidad
   const getAvailableOpponents = (player: string) => {
-    const playerLevel = Object.keys(pyramid).find(level =>
-      pyramid[Number(level) as keyof typeof pyramid].includes(player)
-    )
+    const playerLevel = Object.entries(pyramid).find(([, players]) => players.includes(player))?.[0]
+
     if (!playerLevel) return []
 
     const currentLevel = Number.parseInt(playerLevel)
-    const opponents = []
+    const opponents: string[] = []
 
     if (currentLevel > 1) {
-      opponents.push(...pyramid[(currentLevel - 1) as keyof typeof pyramid])
+      const upperLevel = (currentLevel - 1) as keyof typeof pyramid
+      opponents.push(...pyramid[upperLevel])
     }
-    opponents.push(...pyramid[currentLevel as keyof typeof pyramid].filter(p => p !== player))
+
+    const sameLevel = currentLevel as keyof typeof pyramid
+    opponents.push(...pyramid[sameLevel].filter(p => p !== player))
 
     return opponents
+  }
+
+  // Función para obtener oponentes disponibles para desafíos individuales (solo para user logueado)
+  const getAvailableOpponentsForLoggedUser = () => {
+    if (!user) return []
+
+    const userLevel = Object.entries(pyramid).find(([, players]) =>
+      players.includes(user.alias)
+    )?.[0]
+
+    if (!userLevel) return []
+
+    const currentLevel = Number.parseInt(userLevel)
+    const opponents: string[] = []
+
+    // Puede desafiar al nivel superior
+    if (currentLevel > 1) {
+      const upperLevel = (currentLevel - 1) as keyof typeof pyramid
+      opponents.push(...pyramid[upperLevel])
+    }
+
+    // Puede desafiar a jugadores del mismo nivel (excluyéndose a sí mismo)
+    const sameLevel = currentLevel as keyof typeof pyramid
+    opponents.push(...pyramid[sameLevel].filter(p => p !== user.alias))
+
+    return opponents
+  }
+
+  // Función para obtener todos los jugadores excepto el usuario logueado (para sugerencias)
+  const getPlayersForSuggestions = () => {
+    if (!user) return allPlayers
+    return allPlayers.filter(p => p !== user.alias)
   }
 
   const getHeadToHead = (player1: string, player2: string) => {
@@ -163,29 +176,146 @@ export default function AOEPyramid() {
     return `${hours}h ${minutes}m`
   }
 
-  const createChallenge = () => {
-    console.log(`Desafío creado: ${selectedChallenger} vs ${selectedChallenged}`)
-    setIsDialogOpen(false)
-    setSelectedChallenger('')
-    setSelectedChallenged('')
+  const createChallenge = async () => {
+    if (!user || !selectedChallenged) return
+
+    try {
+      setIsLoading(true)
+      const challengedUser = allUsers.find(u => u.alias === selectedChallenged)
+      if (!challengedUser) return
+
+      await clientChallengeService.createChallenge({
+        challengerId: user.id.toString(),
+        challengedId: challengedUser.id,
+        type: 'INDIVIDUAL',
+      })
+
+      console.log(`Desafío individual creado: ${user.alias} vs ${selectedChallenged}`)
+      setIsDialogOpen(false)
+      setSelectedChallenger('')
+      setSelectedChallenged('')
+
+      // Recargar página para actualizar datos
+      window.location.reload()
+    } catch (error) {
+      console.error('Error creando desafío:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const createSuggestion = () => {
-    console.log(`Sugerencia creada: ${selectedChallenger} vs ${selectedChallenged}`)
-    setIsSuggestDialogOpen(false)
-    setSelectedChallenger('')
-    setSelectedChallenged('')
+  const createSuggestion = async () => {
+    if (!selectedChallenger || !selectedChallenged) return
+
+    try {
+      setIsLoading(true)
+      const challengerUser = allUsers.find(u => u.alias === selectedChallenger)
+      const challengedUser = allUsers.find(u => u.alias === selectedChallenged)
+
+      if (!challengerUser || !challengedUser) return
+
+      await clientChallengeService.createChallenge({
+        challengerId: challengerUser.id,
+        challengedId: challengedUser.id,
+        type: 'SUGGESTION',
+      })
+
+      console.log(`Sugerencia de desafío creada: ${selectedChallenger} vs ${selectedChallenged}`)
+      setIsSuggestDialogOpen(false)
+      setSelectedChallenger('')
+      setSelectedChallenged('')
+
+      // Recargar página para actualizar datos
+      window.location.reload()
+    } catch (error) {
+      console.error('Error creando sugerencia:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const acceptChallenge = (challengeId: string, winner: string) => {
-    console.log(`Desafío ${challengeId} completado. Ganador: ${winner}`)
+  const acceptChallenge = async (challengeId: string, action: string) => {
+    try {
+      setIsLoading(true)
+
+      if (action === 'accept') {
+        // Aceptar desafío - pasa a "accepted" status
+        await clientChallengeService.acceptChallenge(challengeId)
+        console.log(`Desafío ${challengeId} aceptado`)
+      } else if (action === 'reject') {
+        // Rechazar desafío
+        await clientChallengeService.rejectChallenge(challengeId, 'Rechazado por el usuario')
+        console.log(`Desafío ${challengeId} rechazado`)
+      } else if (action === 'both') {
+        // Para sugerencias, ambos aceptan el desafío
+        await clientChallengeService.acceptChallenge(challengeId)
+        console.log(`Sugerencia aceptada por ambos jugadores: ${challengeId}`)
+      } else {
+        // Es un alias de jugador - completar desafío con ganador
+        const winnerUser = allUsers.find(u => u.alias === action)
+        if (!winnerUser) return
+
+        await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
+        console.log(`Desafío ${challengeId} completado. Ganador: ${action}`)
+      }
+
+      // Recargar datos después de procesar
+      window.location.reload()
+    } catch (error) {
+      console.error('Error procesando desafío:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleCreateGroupMatch = (team1: string[], team2: string[], winner: 'team1' | 'team2') => {
-    console.log(
-      `Partida grupal creada: ${team1.join(', ')} vs ${team2.join(', ')}. Ganador: ${winner}`
-    )
-    setIsGroupMatchDialogOpen(false)
+  const confirmWinner = async (challengeId: string, winner: string) => {
+    try {
+      setIsLoading(true)
+
+      const winnerUser = allUsers.find(u => u.alias === winner)
+      if (!winnerUser) return
+
+      await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
+      console.log(`Ganador confirmado para desafío ${challengeId}: ${winner}`)
+
+      // Recargar datos después de confirmar
+      realRefetchAccepted()
+      window.location.reload()
+    } catch (error) {
+      console.error('Error confirmando ganador:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCreateGroupMatch = async (
+    team1: string[],
+    team2: string[],
+    winner: 'team1' | 'team2'
+  ) => {
+    try {
+      setIsLoading(true)
+
+      // Crear el match grupal en la base de datos
+      await clientMatchService.createGroupMatch({
+        team1,
+        team2,
+        winner,
+      })
+
+      console.log(
+        `Partida grupal creada: ${team1.join(', ')} vs ${team2.join(', ')}. Ganador: ${winner}`
+      )
+
+      setIsGroupMatchDialogOpen(false)
+
+      // Recargar página para actualizar datos
+      window.location.reload()
+    } catch (error) {
+      console.error('Error creando partida grupal:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -201,6 +331,9 @@ export default function AOEPyramid() {
       </div>
 
       <div className="max-w-7xl mx-auto p-4 space-y-8 relative z-10">
+        {/* Información de usuario logueado */}
+        <UserInfo />
+
         {/* Sección Hero */}
         <HeroSection />
 
@@ -208,24 +341,12 @@ export default function AOEPyramid() {
         <PyramidSection
           pyramid={pyramid}
           setPyramid={setPyramid}
-          userForm={userForm}
-          setUserForm={setUserForm}
-          isUserDialogOpen={isUserDialogOpen}
-          setIsUserDialogOpen={setIsUserDialogOpen}
-          addUser={() => {
-            console.log(`Agregando usuario: ${userForm.name}`)
-            if (!userForm.name || !userForm.email) return
-            setPyramid(prev => ({
-              ...prev,
-              4: [...prev[4], userForm.name],
-            }))
-            setUserForm({ name: '', email: '' })
-            setIsUserDialogOpen(false)
-          }}
+          isLoginDialogOpen={isLoginDialogOpen}
+          setIsLoginDialogOpen={setIsLoginDialogOpen}
         />
 
         {/* Widgets de Estadísticas */}
-        <StatsWidgets monthStats={monthStats} />
+        {monthStats && <StatsWidgets monthStats={monthStats} />}
 
         {/* Botones de Acción */}
         <ActionButtons
@@ -239,8 +360,8 @@ export default function AOEPyramid() {
           setSelectedChallenger={setSelectedChallenger}
           selectedChallenged={selectedChallenged}
           setSelectedChallenged={setSelectedChallenged}
-          allPlayers={allPlayers}
-          getAvailableOpponents={getAvailableOpponents}
+          allPlayers={user ? getPlayersForSuggestions() : allPlayers}
+          getAvailableOpponents={user ? getAvailableOpponentsForLoggedUser : getAvailableOpponents}
           getHeadToHead={getHeadToHead}
           createChallenge={createChallenge}
           createSuggestion={createSuggestion}
@@ -260,6 +381,8 @@ export default function AOEPyramid() {
         <HistorySection
           recentChallenges={recentChallenges}
           recentMatches={recentMatches}
+          acceptedChallenges={realAcceptedChallenges}
+          confirmWinner={confirmWinner}
           formatTimeAgo={formatTimeAgo}
         />
       </div>

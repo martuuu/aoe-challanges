@@ -12,10 +12,19 @@
     "type-check": "tsc --noEmit",
     "db:setup": "node scripts/setup-db.js",
     "db:reset": "node scripts/reset-db.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
     "netlify": "next build"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
+    "@prisma/client": "^5.22.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -45,6 +54,7 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "@supabase/supabase-js": "latest",
     "autoprefixer": "^10.4.20",
+    "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
@@ -67,6 +77,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -74,7 +85,9 @@
     "eslint": "^8",
     "eslint-config-next": "15.2.4",
     "postcss": "^8.5",
+    "prisma": "^5.22.0",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

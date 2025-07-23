@@ -22,13 +22,23 @@ interface HistorySectionProps {
     team2?: string[]
     winning_team?: 'team1' | 'team2'
   }>
-  formatTimeAgo: (date: string) => string
+  acceptedChallenges: Array<{
+    id: string
+    challenger: { alias: string }
+    challenged: { alias: string }
+    createdAt: Date
+    expiresAt: Date
+  }>
+  confirmWinner: (challengeId: string, winner: string) => Promise<void>
+  formatTimeAgo: (dateString: string) => string
 }
 
 export function HistorySection({
   recentChallenges,
   recentMatches,
+  acceptedChallenges = [],
   formatTimeAgo,
+  confirmWinner = async () => {},
 }: HistorySectionProps) {
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -64,7 +74,7 @@ export function HistorySection({
         <p className="text-sm sm:text-base text-blue-700">Los últimos desafíos y partidas</p>
       </div>
 
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Desafíos Recientes */}
         <Card className="glass-card">
           <CardHeader className="pb-3 sm:pb-6">
@@ -119,6 +129,51 @@ export function HistorySection({
           </CardContent>
         </Card>
 
+        {/* Desafíos Aceptados - Confirmar Ganador */}
+        <Card className="glass-card">
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-green-700 flex items-center gap-2 text-base sm:text-lg">
+              <Crown className="w-4 h-4 sm:w-5 sm:h-5" />
+              Confirmar Ganador
+            </CardTitle>
+            <CardDescription className="text-blue-600 text-sm">
+              Desafíos aceptados - ¿Quién ganó?
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 sm:space-y-3 pt-0">
+            {acceptedChallenges.length > 0 ? (
+              acceptedChallenges.map(challenge => (
+                <div
+                  key={challenge.id}
+                  className="p-2 sm:p-3 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200"
+                >
+                  <div className="text-xs sm:text-sm mb-3">
+                    <span className="font-medium text-green-700">{challenge.challenger.alias}</span>
+                    <span className="text-blue-600 mx-1 sm:mx-2">vs</span>
+                    <span className="font-medium text-green-700">{challenge.challenged.alias}</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => confirmWinner(challenge.id, challenge.challenger.alias)}
+                      className="w-full px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all shadow-md text-sm"
+                    >
+                      Ganó {challenge.challenger.alias}
+                    </button>
+                    <button
+                      onClick={() => confirmWinner(challenge.id, challenge.challenged.alias)}
+                      className="w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-md text-sm"
+                    >
+                      Ganó {challenge.challenged.alias}
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-blue-500 text-center py-4">No hay partidas pendientes</p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Partidas Recientes */}
         <Card className="glass-card">
           <CardHeader className="pb-3 sm:pb-6">
@@ -142,7 +197,9 @@ export function HistorySection({
                       <Crown className="w-3 h-3 mr-1" />
                       {match.type === 'challenge' ? 'Individual' : 'Grupo'}
                     </Badge>
-                    <span className="text-xs text-blue-600 self-start sm:self-auto">{formatTimeAgo(match.created_at)}</span>
+                    <span className="text-xs text-blue-600 self-start sm:self-auto">
+                      {formatTimeAgo(match.created_at)}
+                    </span>
                   </div>
 
                   {match.type === 'challenge' ? (
@@ -159,7 +216,9 @@ export function HistorySection({
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                         <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                           <span className="text-blue-600">Equipo 1:</span>
-                          <span className="text-green-700 break-words">{match.team1?.join(', ')}</span>
+                          <span className="text-green-700 break-words">
+                            {match.team1?.join(', ')}
+                          </span>
                         </div>
                         {match.winning_team === 'team1' && (
                           <Medal className="w-3 h-3 sm:w-4 sm:h-4 text-amber-500 self-start sm:self-auto" />
@@ -168,7 +227,9 @@ export function HistorySection({
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                         <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                           <span className="text-blue-600">Equipo 2:</span>
-                          <span className="text-green-700 break-words">{match.team2?.join(', ')}</span>
+                          <span className="text-green-700 break-words">
+                            {match.team2?.join(', ')}
+                          </span>
                         </div>
                         {match.winning_team === 'team2' && (
                           <Medal className="w-3 h-3 sm:w-4 sm:h-4 text-amber-500 self-start sm:self-auto" />
