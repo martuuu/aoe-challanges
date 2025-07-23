@@ -37,7 +37,8 @@ export default function AOEPyramid() {
   // Hooks para datos reales - HABILITADOS ahora que Supabase funciona
   const { stats: monthlyStats } = useMonthlyStats()
   const { challenges: pendingChallengesFromHook } = usePendingChallenges(user?.id?.toString())
-  const { recentChallenges: recentChallengesFromHook, recentMatches: recentMatchesFromHook } = useRecentHistory()
+  const { recentChallenges: recentChallengesFromHook, recentMatches: recentMatchesFromHook } =
+    useRecentHistory()
   const { challenges: acceptedChallenges, refetch: refetchAccepted } = useAcceptedChallenges()
 
   // Eliminar las variables fallback no utilizadas - usar mock solo en caso de error
@@ -88,7 +89,8 @@ export default function AOEPyramid() {
   const pendingChallenges = pendingChallengesFromHook || mockData.pendingChallenges || []
   const monthStats = monthlyStats || mockData.monthStats || null
   const realAcceptedChallenges = acceptedChallenges || mockData.acceptedChallenges || []
-  const realRefetchAccepted = refetchAccepted || (() => console.log('Mock refetch accepted challenges'))
+  const realRefetchAccepted =
+    refetchAccepted || (() => console.log('Mock refetch accepted challenges'))
 
   // Funciones de utilidad
   const getAvailableOpponents = (player: string) => {
@@ -177,20 +179,46 @@ export default function AOEPyramid() {
   }
 
   const createChallenge = async () => {
-    if (!user || !selectedChallenged) return
+    console.log('createChallenge llamada - Debug Info:', {
+      user,
+      selectedChallenged,
+      userValidation: !user || !selectedChallenged,
+      allUsers: allUsers.length
+    })
+
+    if (!user || !selectedChallenged) {
+      console.error('Validación fallida: user o selectedChallenged están vacíos')
+      alert('Debes estar logueado y seleccionar un oponente')
+      return
+    }
 
     try {
       setIsLoading(true)
+      console.log('Buscando usuario desafiado...')
+      
       const challengedUser = allUsers.find(u => u.alias === selectedChallenged)
-      if (!challengedUser) return
+      
+      console.log('Usuario desafiado encontrado:', challengedUser)
 
-      await clientChallengeService.createChallenge({
+      if (!challengedUser) {
+        console.error('Usuario desafiado no encontrado en allUsers')
+        alert('Error: No se pudo encontrar el usuario seleccionado')
+        return
+      }
+
+      console.log('Enviando petición a la API...')
+      const result = await clientChallengeService.createChallenge({
         challengerId: user.id.toString(),
         challengedId: challengedUser.id,
         type: 'INDIVIDUAL',
       })
 
+      console.log('Respuesta de la API:', result)
       console.log(`Desafío individual creado: ${user.alias} vs ${selectedChallenged}`)
+      
+      // Mostrar mensaje de éxito antes de recargar
+      alert(`¡Desafío creado exitosamente! ${user.alias} vs ${selectedChallenged}`)
+      
       setIsDialogOpen(false)
       setSelectedChallenger('')
       setSelectedChallenged('')
@@ -199,28 +227,54 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando desafío:', error)
+      alert(`Error creando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setIsLoading(false)
     }
   }
 
   const createSuggestion = async () => {
-    if (!selectedChallenger || !selectedChallenged) return
+    console.log('createSuggestion llamada - Debug Info:', {
+      selectedChallenger,
+      selectedChallenged,
+      allUsers: allUsers.length,
+      firstValidation: !selectedChallenger || !selectedChallenged
+    })
+
+    if (!selectedChallenger || !selectedChallenged) {
+      console.error('Validación fallida: selectedChallenger o selectedChallenged están vacíos')
+      alert('Por favor selecciona ambos jugadores')
+      return
+    }
 
     try {
       setIsLoading(true)
+      console.log('Buscando usuarios en allUsers...')
+      
       const challengerUser = allUsers.find(u => u.alias === selectedChallenger)
       const challengedUser = allUsers.find(u => u.alias === selectedChallenged)
 
-      if (!challengerUser || !challengedUser) return
+      console.log('Usuarios encontrados:', { challengerUser, challengedUser })
 
-      await clientChallengeService.createChallenge({
+      if (!challengerUser || !challengedUser) {
+        console.error('Usuarios no encontrados en allUsers')
+        alert('Error: No se pudieron encontrar los usuarios seleccionados')
+        return
+      }
+
+      console.log('Enviando petición a la API...')
+      const result = await clientChallengeService.createChallenge({
         challengerId: challengerUser.id,
         challengedId: challengedUser.id,
         type: 'SUGGESTION',
       })
 
+      console.log('Respuesta de la API:', result)
       console.log(`Sugerencia de desafío creada: ${selectedChallenger} vs ${selectedChallenged}`)
+      
+      // Mostrar mensaje de éxito antes de recargar
+      alert(`¡Sugerencia creada exitosamente! ${selectedChallenger} vs ${selectedChallenged}`)
+      
       setIsSuggestDialogOpen(false)
       setSelectedChallenger('')
       setSelectedChallenged('')
@@ -229,60 +283,104 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando sugerencia:', error)
+      alert(`Error creando sugerencia: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setIsLoading(false)
     }
   }
 
   const acceptChallenge = async (challengeId: string, action: string) => {
+    console.log('acceptChallenge llamada - Debug Info:', {
+      challengeId,
+      action,
+      allUsers: allUsers.length
+    })
+
     try {
       setIsLoading(true)
 
       if (action === 'accept') {
         // Aceptar desafío - pasa a "accepted" status
-        await clientChallengeService.acceptChallenge(challengeId)
+        console.log('Aceptando desafío...')
+        const result = await clientChallengeService.acceptChallenge(challengeId)
+        console.log('Respuesta API accept:', result)
         console.log(`Desafío ${challengeId} aceptado`)
+        alert(`¡Desafío aceptado exitosamente!`)
       } else if (action === 'reject') {
         // Rechazar desafío
-        await clientChallengeService.rejectChallenge(challengeId, 'Rechazado por el usuario')
+        console.log('Rechazando desafío...')
+        const result = await clientChallengeService.rejectChallenge(challengeId, 'Rechazado por el usuario')
+        console.log('Respuesta API reject:', result)
         console.log(`Desafío ${challengeId} rechazado`)
+        alert(`Desafío rechazado`)
       } else if (action === 'both') {
         // Para sugerencias, ambos aceptan el desafío
-        await clientChallengeService.acceptChallenge(challengeId)
+        console.log('Aceptando sugerencia por ambos jugadores...')
+        const result = await clientChallengeService.acceptChallenge(challengeId)
+        console.log('Respuesta API both:', result)
         console.log(`Sugerencia aceptada por ambos jugadores: ${challengeId}`)
+        alert(`¡Sugerencia aceptada por ambos jugadores!`)
       } else {
         // Es un alias de jugador - completar desafío con ganador
+        console.log('Completando desafío con ganador...')
         const winnerUser = allUsers.find(u => u.alias === action)
-        if (!winnerUser) return
+        if (!winnerUser) {
+          console.error('Usuario ganador no encontrado:', action)
+          alert('Error: Usuario ganador no encontrado')
+          return
+        }
 
-        await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
+        const result = await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
+        console.log('Respuesta API complete:', result)
         console.log(`Desafío ${challengeId} completado. Ganador: ${action}`)
+        alert(`¡Desafío completado! Ganador: ${action}`)
       }
 
       // Recargar datos después de procesar
       window.location.reload()
     } catch (error) {
       console.error('Error procesando desafío:', error)
+      alert(`Error procesando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setIsLoading(false)
     }
   }
 
   const confirmWinner = async (challengeId: string, winner: string) => {
+    console.log('confirmWinner llamada - Debug Info:', {
+      challengeId,
+      winner,
+      allUsers: allUsers.length
+    })
+
     try {
       setIsLoading(true)
 
+      console.log('Buscando usuario ganador...')
       const winnerUser = allUsers.find(u => u.alias === winner)
-      if (!winnerUser) return
+      
+      if (!winnerUser) {
+        console.error('Usuario ganador no encontrado:', winner)
+        alert('Error: Usuario ganador no encontrado')
+        return
+      }
 
-      await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
+      console.log('Usuario ganador encontrado:', winnerUser)
+      console.log('Enviando petición para completar desafío...')
+      
+      const result = await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
+      
+      console.log('Respuesta API confirmWinner:', result)
       console.log(`Ganador confirmado para desafío ${challengeId}: ${winner}`)
+      
+      alert(`¡Ganador confirmado exitosamente! ${winner}`)
 
       // Recargar datos después de confirmar
       realRefetchAccepted()
       window.location.reload()
     } catch (error) {
       console.error('Error confirmando ganador:', error)
+      alert(`Error confirmando ganador: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setIsLoading(false)
     }
@@ -293,19 +391,36 @@ export default function AOEPyramid() {
     team2: string[],
     winner: 'team1' | 'team2'
   ) => {
+    console.log('handleCreateGroupMatch llamada - Debug Info:', {
+      team1,
+      team2,
+      winner,
+      validTeams: team1.length > 0 && team2.length > 0
+    })
+
+    if (!team1.length || !team2.length) {
+      console.error('Validación fallida: equipos vacíos')
+      alert('Ambos equipos deben tener al menos un jugador')
+      return
+    }
+
     try {
       setIsLoading(true)
+      console.log('Enviando petición a la API...')
 
-      // Crear el match grupal en la base de datos
-      await clientMatchService.createGroupMatch({
+      const result = await clientMatchService.createGroupMatch({
         team1,
         team2,
         winner,
       })
 
+      console.log('Respuesta de la API:', result)
       console.log(
         `Partida grupal creada: ${team1.join(', ')} vs ${team2.join(', ')}. Ganador: ${winner}`
       )
+
+      // Mostrar mensaje de éxito antes de recargar
+      alert(`¡Partida grupal creada exitosamente!\n${team1.join(', ')} vs ${team2.join(', ')}\nGanador: Equipo ${winner === 'team1' ? '1' : '2'}`)
 
       setIsGroupMatchDialogOpen(false)
 
@@ -313,6 +428,7 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando partida grupal:', error)
+      alert(`Error creando partida grupal: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setIsLoading(false)
     }

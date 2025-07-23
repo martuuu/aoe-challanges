@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { challengeService } from '@/lib/services/challenge-service'
 
-export async function POST(
-  request: NextRequest, 
-  context: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params
     const body = await request.json()

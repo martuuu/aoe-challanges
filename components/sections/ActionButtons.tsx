@@ -117,9 +117,12 @@ export function ActionButtons({
                   </Select>
                 </div>
                 <Button
-                  onClick={createChallenge}
+                  onClick={() => {
+                    console.log('Botón Crear Desafío clickeado!', { user, selectedChallenged })
+                    createChallenge()
+                  }}
                   disabled={!selectedChallenged}
-                  className="w-full bg-[#819067] hover:bg-[#0A400C] text-white h-10 sm:h-11"
+                  className="w-full bg-[#819067] hover:bg-[#0A400C] text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Crear Desafío
                 </Button>
@@ -195,9 +198,12 @@ export function ActionButtons({
               </Select>
             </div>
             <Button
-              onClick={createSuggestion}
+              onClick={() => {
+                console.log('Botón Crear Sugerencia clickeado!', { selectedChallenger, selectedChallenged })
+                createSuggestion()
+              }}
               disabled={!selectedChallenger || !selectedChallenged}
-              className="w-full bg-[#F79B72] hover:bg-[#F5865A] text-white h-10 sm:h-11"
+              className="w-full bg-[#F79B72] hover:bg-[#F5865A] text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Crear Sugerencia
             </Button>
