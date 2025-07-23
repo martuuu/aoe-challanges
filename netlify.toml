@@ -1,21 +1,14 @@
 [build]
   command = "npm run build"
-  publish = "out"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--production=false"
 
-# Next.js requires this for static export
-[[redirects]]
-  from = "/_next/static/*"
-  to = "/_next/static/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Support for Next.js API routes on Netlify
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [[headers]]
   for = "/_next/static/*"
@@ -28,6 +21,7 @@
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [functions]
