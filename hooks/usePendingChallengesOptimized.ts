@@ -10,11 +10,11 @@ export interface PendingChallenge {
   created_at: string
   expires_at: string
   type?: string
-  challenger_confirmed?: boolean
-  challenged_confirmed?: boolean
+  challengerStatus?: 'pending' | 'accepted' | 'rejected'
+  challengedStatus?: 'pending' | 'accepted' | 'rejected'
 }
 
-export function usePendingChallenges(userId?: string) {
+export function usePendingChallengesOptimized(userId?: string) {
   const [challenges, setChallenges] = useState<PendingChallenge[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,31 +27,23 @@ export function usePendingChallenges(userId?: string) {
 
     try {
       setIsLoading(true)
+      setError(null)
 
-      // Usar API route en lugar de service directo
-      const response = await fetch('/api/challenges/')
+      // Usar endpoint optimizado con filtros específicos
+      const response = await fetch(`/api/challenges-optimized?status=pending&userId=${userId}`)
       if (!response.ok) {
         throw new Error('Error fetching challenges')
       }
 
       const data = await response.json()
-      const allChallenges = data.challenges || []
+      console.log('🔍 Hook Debug - API Response:', data)
+      console.log('🔍 Hook Debug - Challenges count:', data.challenges?.length || 0)
+      console.log('🔍 Hook Debug - UserId received:', userId)
 
-      // Filtrar por usuario en el cliente
-      const userChallenges = allChallenges
-        .filter((challenge: PendingChallenge) => challenge.challenged === userId)
-        .map((challenge: PendingChallenge) => ({
-          id: challenge.id,
-          challenger: challenge.challenger,
-          challenged: challenge.challenged,
-          status: challenge.status,
-          created_at: challenge.created_at,
-          expires_at: challenge.expires_at,
-          type: challenge.type,
-        }))
-
-      setChallenges(userChallenges)
-      setError(null)
+      // El API ya filtra por userId, no necesitamos filtrar nuevamente aquí
+      // Los challenges devueltos ya son específicos para este usuario
+      console.log('🔍 Hook Debug - Setting challenges directly from API:', data.challenges)
+      setChallenges(data.challenges)
     } catch (err) {
       console.error('Error fetching challenges:', err)
       setError('Error al cargar desafíos pendientes')
@@ -67,7 +59,6 @@ export function usePendingChallenges(userId?: string) {
 
   const acceptChallenge = async (challengeId: string, winnerId: string) => {
     try {
-      // Usar API route para completar desafío
       const response = await fetch(`/api/challenges/${challengeId}/complete`, {
         method: 'POST',
         headers: {
@@ -80,11 +71,10 @@ export function usePendingChallenges(userId?: string) {
         throw new Error('Error completing challenge')
       }
 
-      // Recargar desafíos después de completar uno
       await fetchChallenges()
     } catch (err) {
       console.error('Error accepting challenge:', err)
-      setError('Error al procesar el resultado del desafío')
+      throw new Error('Error al procesar el resultado del desafío')
     }
   }
 

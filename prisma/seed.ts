@@ -49,8 +49,9 @@ async function main() {
   console.log(`Created ${users.length} users total`)
 
   if (users.length >= 2) {
-    console.log('Creating sample challenges...')
-
+    console.log('Skipping sample challenges creation...')
+    // Comentado para empezar con base de datos limpia
+    /*
     await prisma.challenge.create({
       data: {
         challengerId: users[0].id,
@@ -70,8 +71,9 @@ async function main() {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas
       },
     })
+    */
 
-    console.log('Created sample challenges')
+    console.log('Database ready for clean start')
   }
 
   console.log('Database seeded successfully!')

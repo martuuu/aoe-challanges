@@ -5,7 +5,7 @@ export async function GET() {
   try {
     // Probar la conexión con una consulta simple
     const userCount = await prisma.user.count()
-    
+
     // Probar también obtener algunos usuarios
     const users = await prisma.user.findMany({
       take: 3,
@@ -26,11 +26,14 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Database connection error:', error)
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      environment: process.env.NODE_ENV,
-      databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        environment: process.env.NODE_ENV,
+        databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+      },
+      { status: 500 }
+    )
   }
 }

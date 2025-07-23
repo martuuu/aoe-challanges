@@ -1,7 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { LogIn, Crown } from 'lucide-react'
 import { LoginForm } from '@/components/LoginForm'
 import { useAuth } from '@/hooks/useAuth'
@@ -61,8 +67,6 @@ export function PyramidSection({
 
   const handleLoginSuccess = () => {
     setIsLoginDialogOpen(false)
-    // Aquí podrías recargar la página o actualizar el estado
-    window.location.reload()
   }
 
   return (
@@ -82,21 +86,27 @@ export function PyramidSection({
 
           {/* Botón ingresar como jugador - Solo si no está logueado */}
           {!user && (
-            <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="sm:size-lg w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-                >
-                  <LogIn className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  Ingresar como Jugador
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="mx-4 sm:mx-0 max-w-lg">
-                <LoginForm onSuccess={handleLoginSuccess} />
-              </DialogContent>
-            </Dialog>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="sm:size-lg w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+                  >
+                    <LogIn className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    Ingresar como Jugador
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="mx-4 sm:mx-0 max-w-lg">
+                  <DialogTitle className="sr-only">Ingresar como Jugador</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Formulario para autenticarse en el sistema usando email y contraseña
+                  </DialogDescription>
+                  <LoginForm onSuccess={handleLoginSuccess} />
+                </DialogContent>
+              </Dialog>
+            </div>
           )}
         </div>
       </CardHeader>

@@ -1,16 +1,45 @@
 import { TrendingUp, TrendingDown, Zap, Crown } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { LoadingWidget } from '@/components/ui/loading'
+import { useMonthlyStatsOptimized } from '@/hooks/useMonthlyStatsOptimized'
 
-interface StatsWidgetsProps {
-  monthStats: {
-    topWinner: { name: string; wins: number }
-    topLoser: { name: string; losses: number }
-    bestStreak: { name: string; streak: number }
-    mostClimbed: { name: string; positions: number }
+export function StatsWidgets() {
+  const { stats: monthStats, isLoading, error } = useMonthlyStatsOptimized()
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <LoadingWidget />
+        <LoadingWidget />
+        <LoadingWidget />
+        <LoadingWidget />
+      </div>
+    )
   }
-}
 
-export function StatsWidgets({ monthStats }: StatsWidgetsProps) {
+  if (error || !monthStats) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="bg-gradient-to-br from-gray-50 to-gray-100">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-gray-300 rounded-full">
+                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-400 rounded"></div>
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm text-gray-500 font-medium">Sin datos</div>
+                  <div className="font-bold text-sm sm:text-base text-gray-600">-</div>
+                  <div className="text-xs text-gray-400">No disponible</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <Card className="bg-gradient-to-br from-green-50 to-green-100 hover:shadow-card transition-all duration-300">
@@ -22,7 +51,7 @@ export function StatsWidgets({ monthStats }: StatsWidgetsProps) {
             <div>
               <div className="text-xs sm:text-sm text-green-600 font-medium">Más Ganador</div>
               <div className="font-bold text-sm sm:text-base text-green-700">
-                {monthStats.topWinner.name}
+                {monthStats.topWinner.name || 'Sin datos'}
               </div>
               <div className="text-xs text-green-800">{monthStats.topWinner.wins} victorias</div>
             </div>
@@ -39,7 +68,7 @@ export function StatsWidgets({ monthStats }: StatsWidgetsProps) {
             <div>
               <div className="text-xs sm:text-sm text-orange-600 font-medium">Más Perdedor</div>
               <div className="font-bold text-sm sm:text-base text-orange-700">
-                {monthStats.topLoser.name}
+                {monthStats.topLoser.name || 'Sin datos'}
               </div>
               <div className="text-xs text-orange-500">{monthStats.topLoser.losses} derrotas</div>
             </div>
@@ -56,7 +85,7 @@ export function StatsWidgets({ monthStats }: StatsWidgetsProps) {
             <div>
               <div className="text-xs sm:text-sm text-amber-500 font-medium">Mayor Racha</div>
               <div className="font-bold text-sm sm:text-base text-amber-500">
-                {monthStats.bestStreak.name}
+                {monthStats.bestStreak.name || 'Sin datos'}
               </div>
               <div className="text-xs text-amber-700">{monthStats.bestStreak.streak} seguidas</div>
             </div>
@@ -73,7 +102,7 @@ export function StatsWidgets({ monthStats }: StatsWidgetsProps) {
             <div>
               <div className="text-xs sm:text-sm text-blue-600 font-medium">Más Escalador</div>
               <div className="font-bold text-sm sm:text-base text-blue-700">
-                {monthStats.mostClimbed.name}
+                {monthStats.mostClimbed.name || 'Sin datos'}
               </div>
               <div className="text-xs text-blue-600">
                 +{monthStats.mostClimbed.positions} posiciones

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useContext, createContext, type ReactNode } from 'react'
-import { authService, type AuthUser, type LoginCredentials } from '../lib/auth'
+import { clientAuthService, type AuthUser, type LoginCredentials } from '../lib/auth-client'
 
 interface AuthContextType {
   user: AuthUser | null
@@ -21,26 +21,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verificar si hay un usuario logueado al cargar
   useEffect(() => {
-    const currentUser = authService.getCurrentUser()
-    setUser(currentUser)
-    setIsLoading(false)
+    const validateStoredUser = async () => {
+      const currentUser = clientAuthService.getCurrentUser()
+
+      if (currentUser) {
+        // Verificar si el usuario sigue siendo válido en la base de datos
+        try {
+          const validatedUser = await clientAuthService.validateCurrentUser(currentUser.id)
+          setUser(validatedUser)
+        } catch {
+          setUser(null)
+        }
+      } else {
+        setUser(null)
+      }
+      setIsLoading(false)
+    }
+
+    validateStoredUser()
   }, [])
 
   const login = async (credentials: LoginCredentials) => {
     try {
       setIsLoading(true)
       setError(null)
-      const authUser = await authService.login(credentials)
+      const authUser = await clientAuthService.login(credentials)
       setUser(authUser)
+      // Refresh la página para actualizar todo el estado
+      window.location.reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de autenticación')
+      throw err
     } finally {
       setIsLoading(false)
     }
   }
 
   const logout = () => {
-    authService.logout()
+    clientAuthService.logout()
     setUser(null)
     setError(null)
   }

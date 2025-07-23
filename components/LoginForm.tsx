@@ -4,9 +4,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { LoadingSpinner } from '@/components/ui/loading'
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { validateEmail } from '@/lib/auth'
+import { validateEmail } from '@/lib/auth-client'
 
 interface LoginFormProps {
   onSuccess?: () => void
@@ -60,14 +61,15 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm()) return
+    if (!validateForm()) {
+      return
+    }
 
     try {
       await login(formData)
       onSuccess?.()
-    } catch (err) {
+    } catch {
       // El error ya se maneja en el hook useAuth
-      console.error('Error de login:', err)
     }
   }
 
@@ -155,7 +157,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <LoadingSpinner size="sm" variant="white" />
                 Ingresando...
               </div>
             ) : (

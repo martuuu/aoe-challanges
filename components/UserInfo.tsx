@@ -2,7 +2,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, Settings, Info } from 'lucide-react'
 
 export function UserInfo() {
   const { user, logout } = useAuth()
@@ -39,15 +39,35 @@ export function UserInfo() {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={logout}
-            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Salir
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
+            >
+              <Info className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={logout}
+              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Salir
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

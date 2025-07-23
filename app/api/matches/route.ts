@@ -31,9 +31,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const matches = await matchService.getRecentMatches()
+    const { searchParams } = new URL(request.url)
+    const recent = searchParams.get('recent')
+
+    const matches = await matchService.getRecentMatches(recent ? parseInt(recent) : undefined)
     return NextResponse.json({ matches })
   } catch (error) {
     console.error('Error obteniendo matches:', error)

@@ -1,7 +1,7 @@
 import { initialUsers, type User } from './initial-users'
 
 export interface AuthUser {
-  id: number
+  id: string // Cambiado a string para que coincida con la BD
   name: string
   email: string
   alias: string
@@ -24,6 +24,19 @@ export interface AuthState {
 // En producción esto se reemplazará por Supabase
 const usersDB: User[] = [...initialUsers]
 
+// Mapeo de IDs numéricos (del initial-users) a IDs reales de la base de datos
+const userIdMapping: Record<number, string> = {
+  1: 'cmdff6arb0000ot83y5ebrh4k', // Bicho
+  2: 'cmdff6biw0001ot83o3pnortg', // Tata
+  3: 'cmdff6c9o0002ot83lyqzcxq3', // Seba
+  4: 'cmdff6d0f0003ot83x9tghns8', // Dany
+  5: 'cmdff6drt0004ot83w0cyf6kn', // Chaquinha
+  6: 'cmdff6eij0005ot83virykjc1', // Mati
+  7: 'cmdff6f9e0006ot83i4jale3k', // Pana
+  8: 'cmdff6fzw0007ot83q4i2e6kg', // Ruso
+  9: 'cmdff6gqj0008ot83mk7fdlm8', // Tincho
+}
+
 // Funciones de autenticación
 export const authService = {
   // Login del usuario
@@ -35,8 +48,14 @@ export const authService = {
         )
 
         if (user) {
+          const realUserId = userIdMapping[user.id]
+          if (!realUserId) {
+            reject(new Error('Error de mapeo de usuario'))
+            return
+          }
+
           const authUser: AuthUser = {
-            id: user.id,
+            id: realUserId, // Usar el ID real de la base de datos
             name: user.name,
             email: user.email,
             alias: user.alias,
@@ -70,7 +89,17 @@ export const authService = {
       const stored = localStorage.getItem('aoe-auth-user')
       if (stored) {
         try {
-          return JSON.parse(stored)
+          const user = JSON.parse(stored)
+
+          // Verificar si el usuario tiene el formato de ID correcto (cuid vs number)
+          // Si es un número, significa que es de la versión antigua, forzar logout
+          if (typeof user.id === 'number') {
+            console.log('Usuario con ID antiguo detectado, forzando logout...')
+            this.logout()
+            return null
+          }
+
+          return user
         } catch {
           return null
         }

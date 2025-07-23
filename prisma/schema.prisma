@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,129 +9,116 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  alias        String   @unique
-  password     String
-  level        Int      @default(3)
-  elo          Int      @default(1200)
-  wins         Int      @default(0)
-  losses       Int      @default(0)
-  streak       Int      @default(0)
-  bestStreak   Int      @default(0)
-  totalMatches Int      @default(0)
-  // Estadísticas avanzadas
-  level1Days   Int      @default(0) // Días en nivel 1
-  level2Days   Int      @default(0) // Días en nivel 2
-  level3Days   Int      @default(0) // Días en nivel 3
-  level4Days   Int      @default(0) // Días en nivel 4
-  promotions   Int      @default(0) // Número de ascensos
-  demotions    Int      @default(0) // Número de descensos
-  // Configuración
-  isActive     Boolean  @default(true)
-  lastActiveAt DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relaciones
-  challengesAsChallenger Challenge[] @relation("ChallengerRelation")
-  challengesAsChallenged Challenge[] @relation("ChallengedRelation")
-  matchesAsWinner        Match[]     @relation("WinnerRelation")
-  matchesAsLoser         Match[]     @relation("LoserRelation")
+  id                     String                  @id @default(cuid())
+  email                  String                  @unique
+  name                   String
+  alias                  String                  @unique
+  password               String
+  level                  Int                     @default(3)
+  elo                    Int                     @default(1200)
+  wins                   Int                     @default(0)
+  losses                 Int                     @default(0)
+  streak                 Int                     @default(0)
+  bestStreak             Int                     @default(0)
+  totalMatches           Int                     @default(0)
+  level1Days             Int                     @default(0)
+  level2Days             Int                     @default(0)
+  level3Days             Int                     @default(0)
+  level4Days             Int                     @default(0)
+  promotions             Int                     @default(0)
+  demotions              Int                     @default(0)
+  isActive               Boolean                 @default(true)
+  lastActiveAt           DateTime                @default(now())
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  challengesAsChallenged Challenge[]             @relation("ChallengedRelation")
+  challengesAsChallenger Challenge[]             @relation("ChallengerRelation")
+  eloHistory             EloHistory[]
   groupMatchParticipant  GroupMatchParticipant[]
   levelChanges           LevelChange[]
-  eloHistory             EloHistory[]
+  matchesAsLoser         Match[]                 @relation("LoserRelation")
+  matchesAsWinner        Match[]                 @relation("WinnerRelation")
   userStats              UserStats[]
 
   @@map("users")
 }
 
 model Challenge {
-  id             String          @id @default(cuid())
-  challengerId   String
-  challengedId   String
-  status         ChallengeStatus @default(PENDING)
-  type           ChallengeType   @default(INDIVIDUAL)
-  createdAt      DateTime        @default(now())
-  expiresAt      DateTime        // 1 semana por defecto
-  acceptedAt     DateTime?
-  completedAt    DateTime?
-  rejectedAt     DateTime?
-  cancelledAt    DateTime?
-  winnerId       String?
-  notes          String?
-  rejectionReason String?        // Razón del rechazo
-  // Metadatos del match
-  matchDuration  Int?            // Duración en minutos
-  gameMode       String?         // Modo de juego (1v1, 2v2, etc)
-  mapName        String?         // Mapa jugado
-
-  // Relaciones
-  challenger   User   @relation("ChallengerRelation", fields: [challengerId], references: [id])
-  challenged   User   @relation("ChallengedRelation", fields: [challengedId], references: [id])
-  match        Match?
+  id               String                @id @default(cuid())
+  challengerId     String
+  challengedId     String
+  status           ChallengeStatus       @default(PENDING)
+  type             ChallengeType         @default(INDIVIDUAL)
+  challengerStatus PlayerChallengeStatus @default(PENDING)
+  challengedStatus PlayerChallengeStatus @default(PENDING)
+  createdAt        DateTime              @default(now())
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  completedAt      DateTime?
+  rejectedAt       DateTime?
+  cancelledAt      DateTime?
+  winnerId         String?
+  notes            String?
+  rejectionReason  String?
+  matchDuration    Int?
+  gameMode         String?
+  mapName          String?
+  challenged       User                  @relation("ChallengedRelation", fields: [challengedId], references: [id])
+  challenger       User                  @relation("ChallengerRelation", fields: [challengerId], references: [id])
+  match            Match?
 
   @@map("challenges")
 }
 
 model Match {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   winnerId    String?
   loserId     String?
-  type        MatchType @default(INDIVIDUAL)
-  challengeId String?   @unique
-  createdAt   DateTime  @default(now())
+  type        MatchType   @default(INDIVIDUAL)
+  challengeId String?     @unique
+  createdAt   DateTime    @default(now())
   completedAt DateTime?
   notes       String?
-
-  // Relaciones
-  winner    User?      @relation("WinnerRelation", fields: [winnerId], references: [id])
-  loser     User?      @relation("LoserRelation", fields: [loserId], references: [id])
-  challenge Challenge? @relation(fields: [challengeId], references: [id])
-  groupMatch GroupMatch?
+  groupMatch  GroupMatch?
+  challenge   Challenge?  @relation(fields: [challengeId], references: [id])
+  loser       User?       @relation("LoserRelation", fields: [loserId], references: [id])
+  winner      User?       @relation("WinnerRelation", fields: [winnerId], references: [id])
 
   @@map("matches")
 }
 
 model GroupMatch {
-  id          String   @id @default(cuid())
-  matchId     String   @unique
-  winningTeam Int      // 1 o 2
-  createdAt   DateTime @default(now())
-  notes       String?
-
-  // Relaciones
-  match        Match                   @relation(fields: [matchId], references: [id])
+  id           String                  @id @default(cuid())
+  matchId      String                  @unique
+  winningTeam  Int
+  createdAt    DateTime                @default(now())
+  notes        String?
   participants GroupMatchParticipant[]
+  match        Match                   @relation(fields: [matchId], references: [id])
 
   @@map("group_matches")
 }
 
 model GroupMatchParticipant {
-  id           String @id @default(cuid())
+  id           String     @id @default(cuid())
   groupMatchId String
   userId       String
-  team         Int    // 1 o 2
-
-  // Relaciones
-  groupMatch GroupMatch @relation(fields: [groupMatchId], references: [id])
-  user       User       @relation(fields: [userId], references: [id])
+  team         Int
+  groupMatch   GroupMatch @relation(fields: [groupMatchId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
 
   @@unique([groupMatchId, userId])
   @@map("group_match_participants")
 }
 
 model LevelChange {
-  id        String          @id @default(cuid())
+  id        String            @id @default(cuid())
   userId    String
   oldLevel  Int
   newLevel  Int
   reason    LevelChangeReason
-  createdAt DateTime        @default(now())
-
-  // Relaciones
-  user User @relation(fields: [userId], references: [id])
+  createdAt DateTime          @default(now())
+  user      User              @relation(fields: [userId], references: [id])
 
   @@map("level_changes")
 }
@@ -147,11 +131,77 @@ model EloHistory {
   matchId   String?
   reason    String
   createdAt DateTime @default(now())
-
-  // Relación
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("elo_history")
+}
+
+model UserStats {
+  id                   String   @id @default(cuid())
+  userId               String
+  month                Int
+  year                 Int
+  wins                 Int      @default(0)
+  losses               Int      @default(0)
+  winRate              Float    @default(0.0)
+  averageMatchDuration Float?
+  bestStreak           Int      @default(0)
+  worstStreak          Int      @default(0)
+  challengesSent       Int      @default(0)
+  challengesReceived   Int      @default(0)
+  challengesAccepted   Int      @default(0)
+  challengesRejected   Int      @default(0)
+  timeAtLevel1         Int      @default(0)
+  timeAtLevel2         Int      @default(0)
+  timeAtLevel3         Int      @default(0)
+  timeAtLevel4         Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month, year])
+  @@map("user_stats")
+}
+
+model HeadToHead {
+  id           String    @id @default(cuid())
+  player1Id    String
+  player2Id    String
+  player1Wins  Int       @default(0)
+  player2Wins  Int       @default(0)
+  totalMatches Int       @default(0)
+  lastMatch    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([player1Id, player2Id])
+  @@map("head_to_head")
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  value       Int
+  description String
+  achievedAt  DateTime @default(now())
+  isActive    Boolean  @default(true)
+
+  @@map("achievements")
+}
+
+model RankingSnapshot {
+  id       String   @id @default(cuid())
+  date     DateTime
+  userId   String
+  level    Int
+  position Int
+  elo      Int
+  wins     Int
+  losses   Int
+
+  @@unique([date, userId])
+  @@map("ranking_snapshots")
 }
 
 enum ChallengeStatus {
@@ -160,6 +210,12 @@ enum ChallengeStatus {
   COMPLETED
   EXPIRED
   CANCELLED
+  REJECTED
+}
+
+enum PlayerChallengeStatus {
+  PENDING
+  ACCEPTED
   REJECTED
 }
 
@@ -179,77 +235,4 @@ enum LevelChangeReason {
   CONSECUTIVE_DEFEATS
   ADMIN_ADJUSTMENT
   SEASON_RESET
-}
-
-// Nuevo modelo para estadísticas detalladas por usuario
-model UserStats {
-  id                    String   @id @default(cuid())
-  userId                String
-  month                 Int      // 1-12
-  year                  Int
-  wins                  Int      @default(0)
-  losses                Int      @default(0)
-  winRate               Float    @default(0.0)
-  averageMatchDuration  Float?   // Duración promedio en minutos
-  bestStreak            Int      @default(0)
-  worstStreak           Int      @default(0)
-  challengesSent        Int      @default(0)
-  challengesReceived    Int      @default(0)
-  challengesAccepted    Int      @default(0)
-  challengesRejected    Int      @default(0)
-  timeAtLevel1          Int      @default(0) // Días en cada nivel durante el mes
-  timeAtLevel2          Int      @default(0)
-  timeAtLevel3          Int      @default(0)
-  timeAtLevel4          Int      @default(0)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([userId, month, year])
-  @@map("user_stats")
-}
-
-// Modelo para tracking de enfrentamientos head-to-head
-model HeadToHead {
-  id           String   @id @default(cuid())
-  player1Id    String
-  player2Id    String
-  player1Wins  Int      @default(0)
-  player2Wins  Int      @default(0)
-  totalMatches Int      @default(0)
-  lastMatch    DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@unique([player1Id, player2Id])
-  @@map("head_to_head")
-}
-
-// Modelo para tracking de récords y logros
-model Achievement {
-  id          String   @id @default(cuid())
-  userId      String
-  type        String   // "longest_streak", "most_wins_month", "level_1_king", etc.
-  value       Int      // Valor del logro (ej: 10 para racha de 10)
-  description String
-  achievedAt  DateTime @default(now())
-  isActive    Boolean  @default(true) // Para récords que pueden ser superados
-
-  @@map("achievements")
-}
-
-// Modelo para ranking histórico
-model RankingSnapshot {
-  id        String   @id @default(cuid())
-  date      DateTime
-  userId    String
-  level     Int
-  position  Int      // Posición dentro del nivel
-  elo       Int
-  wins      Int
-  losses    Int
-  
-  @@unique([date, userId])
-  @@map("ranking_snapshots")
 }

@@ -87,6 +87,24 @@ export const clientChallengeService = {
 
     return await response.json()
   },
+
+  // Actualizar estado individual de un jugador en un challenge
+  async updatePlayerStatus(challengeId: string, userId: string, action: 'accept' | 'reject') {
+    const response = await fetch('/api/challenges', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ challengeId, userId, action }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Error actualizando estado del jugador')
+    }
+
+    return await response.json()
+  },
 }
 
 export const clientMatchService = {

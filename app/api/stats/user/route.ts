@@ -15,7 +15,7 @@ export async function GET() {
 
     // Obtener estadísticas de desafíos para todos los usuarios
     const userStats = await Promise.all(
-      users.map(async (user) => {
+      users.map(async user => {
         try {
           const challengeStats = await challengeService.getChallengeStats(user.id)
           return {

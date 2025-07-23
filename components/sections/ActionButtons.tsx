@@ -118,7 +118,6 @@ export function ActionButtons({
                 </div>
                 <Button
                   onClick={() => {
-                    console.log('Botón Crear Desafío clickeado!', { user, selectedChallenged })
                     createChallenge()
                   }}
                   disabled={!selectedChallenged}
@@ -137,7 +136,8 @@ export function ActionButtons({
         <DialogTrigger asChild>
           <Button
             size="lg"
-            className="shadow-lg w-full sm:w-auto bg-[#F79B72] hover:bg-[#F5865A] text-white"
+            className="shadow-lg w-full sm:w-auto bg-[#F79B72] hover:bg-[#F5865A] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!user}
           >
             <Heart className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Sugerir Desafío
@@ -149,74 +149,81 @@ export function ActionButtons({
               Sugerir Desafío
             </DialogTitle>
             <DialogDescription className="text-blue-600 text-sm">
-              Sugiere un desafío entre dos jugadores. Ambos deberán aceptar la sugerencia.
+              {user
+                ? 'Sugiere un desafío entre dos jugadores. Ambos deberán aceptar la sugerencia.'
+                : 'Debes iniciar sesión para sugerir desafíos.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 sm:space-y-4">
-            <div>
-              <Label className="text-sm font-medium text-orange-600 mb-1 block">Jugador 1</Label>
-              <Select value={selectedChallenger} onValueChange={setSelectedChallenger}>
-                <SelectTrigger className="w-full border-orange-200 focus:border-orange-400 focus:ring-orange-200">
-                  <SelectValue placeholder="Selecciona el primer jugador" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allPlayers.map(player => (
-                    <SelectItem key={player} value={player}>
-                      {player}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-orange-600 mb-1 block">Jugador 2</Label>
-              <Select
-                value={selectedChallenged}
-                onValueChange={setSelectedChallenged}
-                disabled={!selectedChallenger}
-              >
-                <SelectTrigger className="w-full border-orange-200 focus:border-orange-400 focus:ring-orange-200 disabled:bg-gray-50">
-                  <SelectValue placeholder="Selecciona el segundo jugador" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedChallenger &&
-                    allPlayers
-                      .filter(p => p !== selectedChallenger)
+          {user && (
+            <div className="space-y-3 sm:space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-orange-600 mb-1 block">Jugador 1</Label>
+                <Select value={selectedChallenger} onValueChange={setSelectedChallenger}>
+                  <SelectTrigger className="w-full border-orange-200 focus:border-orange-400 focus:ring-orange-200">
+                    <SelectValue placeholder="Selecciona el primer jugador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allPlayers
+                      .filter(player => player !== user.alias)
                       .map(player => (
                         <SelectItem key={player} value={player}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{player}</span>
-                            {getHeadToHead(selectedChallenger, player) !== '0-0' && (
-                              <span className="text-blue-500 ml-2 text-xs">
-                                ({getHeadToHead(selectedChallenger, player)})
-                              </span>
-                            )}
-                          </div>
+                          {player}
                         </SelectItem>
                       ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-orange-600 mb-1 block">Jugador 2</Label>
+                <Select
+                  value={selectedChallenged}
+                  onValueChange={setSelectedChallenged}
+                  disabled={!selectedChallenger}
+                >
+                  <SelectTrigger className="w-full border-orange-200 focus:border-orange-400 focus:ring-orange-200 disabled:bg-gray-50">
+                    <SelectValue placeholder="Selecciona el segundo jugador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedChallenger &&
+                      allPlayers
+                        .filter(p => p !== selectedChallenger && p !== user.alias)
+                        .map(player => (
+                          <SelectItem key={player} value={player}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{player}</span>
+                              {getHeadToHead(selectedChallenger, player) !== '0-0' && (
+                                <span className="text-blue-500 ml-2 text-xs">
+                                  ({getHeadToHead(selectedChallenger, player)})
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => {
+                  createSuggestion()
+                }}
+                disabled={!selectedChallenger || !selectedChallenged}
+                className="w-full bg-[#F79B72] hover:bg-[#F5865A] text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Crear Sugerencia
+              </Button>
             </div>
-            <Button
-              onClick={() => {
-                console.log('Botón Crear Sugerencia clickeado!', {
-                  selectedChallenger,
-                  selectedChallenged,
-                })
-                createSuggestion()
-              }}
-              disabled={!selectedChallenger || !selectedChallenged}
-              className="w-full bg-[#F79B72] hover:bg-[#F5865A] text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Crear Sugerencia
-            </Button>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
 
       <Dialog open={isGroupMatchDialogOpen} onOpenChange={setIsGroupMatchDialogOpen}>
         <DialogTrigger asChild>
-          <Button size="lg" variant="outline" className="shadow-lg w-full sm:w-auto">
+          <Button
+            size="lg"
+            variant="outline"
+            className="shadow-lg w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!user}
+          >
             <Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Cargar Partida en Grupo
           </Button>
@@ -227,10 +234,14 @@ export function ActionButtons({
               Cargar Resultado de Partida en Grupo
             </DialogTitle>
             <DialogDescription className="text-blue-600 text-sm">
-              Arrastra jugadores para formar equipos y selecciona el ganador
+              {user
+                ? 'Arrastra jugadores para formar equipos y selecciona el ganador'
+                : 'Debes iniciar sesión para cargar partidas en grupo.'}
             </DialogDescription>
           </DialogHeader>
-          <DragDropGroupMatch allPlayers={allPlayers} onCreateMatch={handleCreateGroupMatch} />
+          {user && (
+            <DragDropGroupMatch allPlayers={allPlayers} onCreateMatch={handleCreateGroupMatch} />
+          )}
         </DialogContent>
       </Dialog>
     </div>

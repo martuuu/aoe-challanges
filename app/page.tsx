@@ -5,14 +5,14 @@ import { HeroSection } from '@/components/sections/HeroSection'
 import { PyramidSection } from '@/components/sections/PyramidSection'
 import { StatsWidgets } from '@/components/sections/StatsWidgets'
 import { ActionButtons } from '@/components/sections/ActionButtons'
-import { ChallengesSection } from '@/components/sections/ChallengesSection'
-import { HistorySection } from '@/components/sections/HistorySection'
+import { ChallengeSection } from '@/components/sections/ChallengeSection'
+import { PlayableChallengesSection } from '@/components/sections/PlayableChallengesSection'
+import { RecentMatches } from '@/components/sections/RecentMatches'
 import { UserInfo } from '@/components/UserInfo'
 import { useAuth } from '@/hooks/useAuth'
-import { useMonthlyStats } from '@/hooks/useMonthlyStats'
-import { usePendingChallenges } from '@/hooks/usePendingChallenges'
-import { useRecentHistory } from '@/hooks/useRecentHistory'
-import { useAcceptedChallenges } from '@/hooks/useAcceptedChallenges'
+import { usePendingChallengesOptimized } from '@/hooks/usePendingChallengesOptimized'
+import { useRecentHistoryOptimized } from '@/hooks/useRecentHistoryOptimized'
+import { useAcceptedChallengesOptimized } from '@/hooks/useAcceptedChallengesOptimized'
 import {
   clientChallengeService,
   clientMatchService,
@@ -35,11 +35,11 @@ export default function AOEPyramid() {
   const { user } = useAuth()
 
   // Hooks para datos reales - HABILITADOS ahora que Supabase funciona
-  const { stats: monthlyStats } = useMonthlyStats()
-  const { challenges: pendingChallengesFromHook } = usePendingChallenges(user?.id?.toString())
-  const { recentChallenges: recentChallengesFromHook, recentMatches: recentMatchesFromHook } =
-    useRecentHistory()
-  const { challenges: acceptedChallenges, refetch: refetchAccepted } = useAcceptedChallenges()
+  const { challenges: pendingChallengesFromHook } = usePendingChallengesOptimized(
+    user?.id?.toString()
+  )
+  const { recentMatches: recentMatchesFromHook } = useRecentHistoryOptimized()
+  const { acceptedChallenges, refetch: refetchAccepted } = useAcceptedChallengesOptimized()
 
   // Eliminar las variables fallback no utilizadas - usar mock solo en caso de error
 
@@ -84,10 +84,8 @@ export default function AOEPyramid() {
   const allPlayers = Object.values(pyramid).flat()
 
   // Usar datos reales con fallback a mock si no están disponibles
-  const recentChallenges = recentChallengesFromHook || mockData.recentChallenges || []
   const recentMatches = recentMatchesFromHook || mockData.recentMatches || []
   const pendingChallenges = pendingChallengesFromHook || mockData.pendingChallenges || []
-  const monthStats = monthlyStats || mockData.monthStats || null
   const realAcceptedChallenges = acceptedChallenges || mockData.acceptedChallenges || []
   const realRefetchAccepted =
     refetchAccepted || (() => console.log('Mock refetch accepted challenges'))
@@ -148,12 +146,14 @@ export default function AOEPyramid() {
     const relevantMatches = recentMatches.filter(
       match =>
         match.type === 'challenge' &&
-        ((match.winner === player1 && match.loser === player2) ||
-          (match.winner === player2 && match.loser === player1))
+        match.winner &&
+        match.loser &&
+        ((match.winner.alias === player1 && match.loser.alias === player2) ||
+          (match.winner.alias === player2 && match.loser.alias === player1))
     )
 
-    const player1Wins = relevantMatches.filter(m => m.winner === player1).length
-    const player2Wins = relevantMatches.filter(m => m.winner === player2).length
+    const player1Wins = relevantMatches.filter(m => m.winner?.alias === player1).length
+    const player2Wins = relevantMatches.filter(m => m.winner?.alias === player2).length
 
     return `${player1Wins}-${player2Wins}`
   }
@@ -179,15 +179,7 @@ export default function AOEPyramid() {
   }
 
   const createChallenge = async () => {
-    console.log('createChallenge llamada - Debug Info:', {
-      user,
-      selectedChallenged,
-      userValidation: !user || !selectedChallenged,
-      allUsers: allUsers.length,
-    })
-
     if (!user || !selectedChallenged) {
-      console.error('Validación fallida: user o selectedChallenged están vacíos')
       alert('Debes estar logueado y seleccionar un oponente')
       return
     }
@@ -293,62 +285,32 @@ export default function AOEPyramid() {
     }
   }
 
-  const acceptChallenge = async (challengeId: string, action: string) => {
-    console.log('acceptChallenge llamada - Debug Info:', {
-      challengeId,
-      action,
-      allUsers: allUsers.length,
-    })
-
+  const confirmChallenge = async (challengeId: string, action: 'accept' | 'reject') => {
     try {
       setIsLoading(true)
 
-      if (action === 'accept') {
-        // Aceptar desafío - pasa a "accepted" status
-        console.log('Aceptando desafío...')
-        const result = await clientChallengeService.acceptChallenge(challengeId)
-        console.log('Respuesta API accept:', result)
-        console.log(`Desafío ${challengeId} aceptado`)
-        alert(`¡Desafío aceptado exitosamente!`)
-      } else if (action === 'reject') {
-        // Rechazar desafío
-        console.log('Rechazando desafío...')
-        const result = await clientChallengeService.rejectChallenge(
-          challengeId,
-          'Rechazado por el usuario'
-        )
-        console.log('Respuesta API reject:', result)
-        console.log(`Desafío ${challengeId} rechazado`)
-        alert(`Desafío rechazado`)
-      } else if (action === 'both') {
-        // Para sugerencias, ambos aceptan el desafío
-        console.log('Aceptando sugerencia por ambos jugadores...')
-        const result = await clientChallengeService.acceptChallenge(challengeId)
-        console.log('Respuesta API both:', result)
-        console.log(`Sugerencia aceptada por ambos jugadores: ${challengeId}`)
-        alert(`¡Sugerencia aceptada por ambos jugadores!`)
-      } else {
-        // Es un alias de jugador - completar desafío con ganador
-        console.log('Completando desafío con ganador...')
-        const winnerUser = allUsers.find(u => u.alias === action)
-        if (!winnerUser) {
-          console.error('Usuario ganador no encontrado:', action)
-          alert('Error: Usuario ganador no encontrado')
-          return
-        }
-
-        const result = await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
-        console.log('Respuesta API complete:', result)
-        console.log(`Desafío ${challengeId} completado. Ganador: ${action}`)
-        alert(`¡Desafío completado! Ganador: ${action}`)
+      if (!user?.id) {
+        console.error('Usuario no autenticado')
+        alert('Error: Usuario no autenticado')
+        return
       }
+
+      console.log(`${action === 'accept' ? 'Aceptando' : 'Rechazando'} desafío...`)
+      const result = await clientChallengeService.updatePlayerStatus(
+        challengeId,
+        user.id.toString(),
+        action
+      )
+      console.log('Respuesta API updatePlayerStatus:', result)
+      console.log(`Desafío ${challengeId} ${action === 'accept' ? 'aceptado' : 'rechazado'}`)
+      alert(`¡Desafío ${action === 'accept' ? 'aceptado' : 'rechazado'} exitosamente!`)
 
       // Recargar datos después de procesar
       window.location.reload()
     } catch (error) {
-      console.error('Error procesando desafío:', error)
+      console.error('Error confirmando desafío:', error)
       alert(
-        `Error procesando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`
+        `Error confirmando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`
       )
     } finally {
       setIsLoading(false)
@@ -481,7 +443,7 @@ export default function AOEPyramid() {
         />
 
         {/* Widgets de Estadísticas */}
-        {monthStats && <StatsWidgets monthStats={monthStats} />}
+        <StatsWidgets />
 
         {/* Botones de Acción */}
         <ActionButtons
@@ -503,24 +465,25 @@ export default function AOEPyramid() {
           handleCreateGroupMatch={handleCreateGroupMatch}
         />
 
-        {/* Desafíos Pendientes */}
-        {pendingChallenges.length > 0 && (
-          <ChallengesSection
-            pendingChallenges={pendingChallenges}
-            acceptChallenge={acceptChallenge}
-            formatTimeRemaining={formatTimeRemaining}
-          />
-        )}
-
-        {/* Historial */}
-        <HistorySection
-          recentChallenges={recentChallenges}
-          recentMatches={recentMatches}
-          acceptedChallenges={realAcceptedChallenges}
-          acceptChallenge={acceptChallenge}
-          confirmWinner={confirmWinner}
-          formatTimeAgo={formatTimeAgo}
+        {/* Desafíos Pendientes de Confirmación */}
+        <ChallengeSection
+          pendingChallenges={pendingChallenges}
+          confirmChallenge={confirmChallenge}
           formatTimeRemaining={formatTimeRemaining}
+        />
+
+        {/* Desafíos Confirmados Listos para Jugar */}
+        <PlayableChallengesSection
+          acceptedChallenges={realAcceptedChallenges}
+          confirmWinner={confirmWinner}
+          formatTimeRemaining={formatTimeRemaining}
+        />
+
+        {/* Partidas Recientes */}
+        <RecentMatches
+          recentMatches={recentMatches}
+          cancelledChallenges={[]} // TODO: Implementar hook para desafíos cancelados
+          formatTimeAgo={formatTimeAgo}
         />
       </div>
     </div>

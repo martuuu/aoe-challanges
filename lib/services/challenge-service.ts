@@ -27,6 +27,30 @@ export interface ChallengeWithUsers extends Challenge {
 export const challengeService = {
   // Crear un nuevo desafío
   async createChallenge(data: CreateChallengeData): Promise<Challenge> {
+    // Validar que los usuarios existan antes de crear el challenge
+    const [challenger, challenged] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: data.challengerId },
+        select: { id: true, alias: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: data.challengedId },
+        select: { id: true, alias: true },
+      }),
+    ])
+
+    if (!challenger) {
+      throw new Error(
+        `Usuario challenger con ID "${data.challengerId}" no encontrado en la base de datos`
+      )
+    }
+
+    if (!challenged) {
+      throw new Error(
+        `Usuario challenged con ID "${data.challengedId}" no encontrado en la base de datos`
+      )
+    }
+
     // Determinar el tiempo de expiración según el tipo
     let expiresAt: Date
     if (data.expiresAt) {
@@ -39,15 +63,22 @@ export const challengeService = {
       expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     }
 
-    return await prisma.challenge.create({
+    // Crear el challenge con estados individuales según el tipo
+    const challenge = await prisma.challenge.create({
       data: {
         challengerId: data.challengerId,
         challengedId: data.challengedId,
         type: data.type || 'INDIVIDUAL',
         status: 'PENDING',
+        // Para desafíos individuales, el challenger acepta automáticamente
+        challengerStatus: data.type === 'INDIVIDUAL' ? 'ACCEPTED' : 'PENDING',
+        // Para sugerencias, ambos empiezan como pending
+        challengedStatus: 'PENDING',
         expiresAt,
       },
     })
+
+    return challenge
   },
 
   // Obtener desafíos pendientes
@@ -111,14 +142,64 @@ export const challengeService = {
     })
   },
 
-  // Aceptar un desafío
+  // Aceptar un desafío (método legacy - usar updatePlayerStatus)
   async acceptChallenge(challengeId: string): Promise<Challenge> {
+    // Este método se mantiene por compatibilidad pero ya no debería usarse
+    // El nuevo flujo debe usar updatePlayerStatus
     return await prisma.challenge.update({
       where: { id: challengeId },
       data: {
         status: 'ACCEPTED',
         acceptedAt: new Date(),
       },
+    })
+  },
+
+  // Actualizar estado individual de un jugador en un challenge
+  async updatePlayerStatus(
+    challengeId: string,
+    userId: string,
+    status: 'ACCEPTED' | 'REJECTED'
+  ): Promise<Challenge> {
+    const challenge = await prisma.challenge.findUnique({
+      where: { id: challengeId },
+    })
+
+    if (!challenge) {
+      throw new Error('Desafío no encontrado')
+    }
+
+    const updateData: {
+      challengerStatus?: 'ACCEPTED' | 'REJECTED' | 'PENDING'
+      challengedStatus?: 'ACCEPTED' | 'REJECTED' | 'PENDING'
+      status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED'
+      acceptedAt?: Date
+    } = {}
+
+    if (challenge.challengerId === userId) {
+      updateData.challengerStatus = status
+    } else if (challenge.challengedId === userId) {
+      updateData.challengedStatus = status
+    } else {
+      throw new Error('Usuario no tiene permisos para actualizar este desafío')
+    }
+
+    if (status === 'REJECTED') {
+      updateData.status = 'REJECTED'
+    }
+
+    // Si ambos jugadores han aceptado, cambiar el status general a ACCEPTED
+    const otherPlayerStatus =
+      challenge.challengerId === userId ? challenge.challengedStatus : challenge.challengerStatus
+
+    if (status === 'ACCEPTED' && otherPlayerStatus === 'ACCEPTED') {
+      updateData.status = 'ACCEPTED'
+      updateData.acceptedAt = new Date()
+    }
+
+    return await prisma.challenge.update({
+      where: { id: challengeId },
+      data: updateData,
     })
   },
 
@@ -224,10 +305,7 @@ export const challengeService = {
       // Hacer una sola consulta que obtenga todos los challenges del usuario
       const userChallenges = await prisma.challenge.findMany({
         where: {
-          OR: [
-            { challengerId: userId },
-            { challengedId: userId },
-          ],
+          OR: [{ challengerId: userId }, { challengedId: userId }],
         },
         select: {
           challengerId: true,
@@ -245,7 +323,7 @@ export const challengeService = {
       let won = 0
       let lost = 0
 
-      userChallenges.forEach((challenge) => {
+      userChallenges.forEach(challenge => {
         // Challenges enviados
         if (challenge.challengerId === userId) {
           sent++
@@ -254,7 +332,7 @@ export const challengeService = {
         // Challenges recibidos
         if (challenge.challengedId === userId) {
           received++
-          
+
           if (challenge.status === 'ACCEPTED') {
             accepted++
           } else if (challenge.status === 'REJECTED') {
@@ -266,10 +344,7 @@ export const challengeService = {
         if (challenge.status === 'COMPLETED' && challenge.winnerId) {
           if (challenge.winnerId === userId) {
             won++
-          } else if (
-            challenge.challengerId === userId || 
-            challenge.challengedId === userId
-          ) {
+          } else if (challenge.challengerId === userId || challenge.challengedId === userId) {
             lost++
           }
         }

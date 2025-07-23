@@ -57,6 +57,10 @@ export const authService = {
 
       return authUser
     } catch (error) {
+      console.error(
+        '❌ Error en authService.login:',
+        error instanceof Error ? error.message : 'Error desconocido'
+      )
       throw new Error(error instanceof Error ? error.message : 'Error de autenticación')
     }
   },
@@ -74,8 +78,19 @@ export const authService = {
       const stored = localStorage.getItem('aoe-auth-user')
       if (stored) {
         try {
-          return JSON.parse(stored)
-        } catch {
+          const user = JSON.parse(stored)
+
+          // Verificar si el usuario tiene el formato de ID correcto (cuid vs number)
+          // Si es un número, significa que es de la versión antigua, forzar logout
+          if (typeof user.id === 'number') {
+            this.logout()
+            return null
+          }
+
+          return user
+        } catch (error) {
+          console.error('❌ Error parsing localStorage user:', error)
+          localStorage.removeItem('aoe-auth-user')
           return null
         }
       }
@@ -90,11 +105,21 @@ export const authService = {
         where: { id: userId },
       })
 
-      if (!user || !user.isActive) {
+      if (!user) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('aoe-auth-user')
+        }
         return null
       }
 
-      return {
+      if (!user.isActive) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('aoe-auth-user')
+        }
+        return null
+      }
+
+      const authUser: AuthUser = {
         id: user.id,
         name: user.name,
         email: user.email,
@@ -102,7 +127,10 @@ export const authService = {
         level: user.level,
         isAuthenticated: true,
       }
-    } catch {
+
+      return authUser
+    } catch (error) {
+      console.error('❌ Error validando usuario:', error)
       return null
     }
   },
