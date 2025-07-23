@@ -29,7 +29,7 @@ export function usePendingChallenges(userId?: string) {
       setIsLoading(true)
 
       // Usar API route en lugar de service directo
-      const response = await fetch('/api/challenges')
+      const response = await fetch('/api/challenges/')
       if (!response.ok) {
         throw new Error('Error fetching challenges')
       }

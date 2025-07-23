@@ -22,7 +22,7 @@ export function useAcceptedChallenges() {
       setError(null)
 
       // Usar API route en lugar de service directo
-      const response = await fetch('/api/challenges?status=accepted')
+      const response = await fetch('/api/challenges/?status=accepted')
       if (!response.ok) {
         throw new Error('Error fetching accepted challenges')
       }

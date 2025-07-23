@@ -18,7 +18,7 @@ export const clientUserService = {
 export const clientChallengeService = {
   // Crear un nuevo desafío
   async createChallenge(data: { challengerId: string; challengedId: string; type?: string }) {
-    const response = await fetch('/api/challenges', {
+    const response = await fetch('/api/challenges/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -39,7 +39,7 @@ export function useUserMainStats(userId?: string) {
         const [userStatsResponse, rankingResponse, challengesResponse] = await Promise.all([
           fetch(`/api/users/${userId}/stats`),
           fetch(`/api/users/${userId}/ranking`),
-          fetch(`/api/challenges?userId=${userId}`),
+          fetch(`/api/challenges/?userId=${userId}`),
         ])
 
         if (!userStatsResponse.ok || !rankingResponse.ok || !challengesResponse.ok) {

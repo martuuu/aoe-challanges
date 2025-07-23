@@ -37,7 +37,7 @@ export function useRecentHistory() {
         setError(null)
 
         // Usar API route en lugar de service directo
-        const response = await fetch('/api/challenges?recent=10')
+        const response = await fetch('/api/challenges/?recent=10')
         if (!response.ok) {
           throw new Error('Error fetching recent challenges')
         }

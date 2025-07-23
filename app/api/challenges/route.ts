@@ -6,6 +6,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { challengerId, challengedId, type } = body
 
+    console.log('Creating challenge with data:', { challengerId, challengedId, type })
+
     if (!challengerId || !challengedId) {
       return NextResponse.json(
         { error: 'challengerId y challengedId son requeridos' },
@@ -19,10 +21,15 @@ export async function POST(request: NextRequest) {
       type: type || 'INDIVIDUAL',
     })
 
+    console.log('Challenge created successfully:', challenge.id)
     return NextResponse.json({ challenge, success: true })
   } catch (error) {
     console.error('Error creando desafío:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available')
+    return NextResponse.json({ 
+      error: 'Error interno del servidor',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 

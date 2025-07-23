@@ -220,48 +220,84 @@ export const challengeService = {
 
   // Obtener estadísticas de desafíos por usuario
   async getChallengeStats(userId: string) {
-    const [sent, received, accepted, rejected, won, lost] = await Promise.all([
-      prisma.challenge.count({
-        where: { challengerId: userId },
-      }),
-      prisma.challenge.count({
-        where: { challengedId: userId },
-      }),
-      prisma.challenge.count({
-        where: { challengedId: userId, status: 'ACCEPTED' },
-      }),
-      prisma.challenge.count({
-        where: { challengedId: userId, status: 'REJECTED' },
-      }),
-      prisma.challenge.count({
+    try {
+      // Hacer una sola consulta que obtenga todos los challenges del usuario
+      const userChallenges = await prisma.challenge.findMany({
         where: {
           OR: [
-            { challengerId: userId, winnerId: userId },
-            { challengedId: userId, winnerId: userId },
+            { challengerId: userId },
+            { challengedId: userId },
           ],
-          status: 'COMPLETED',
         },
-      }),
-      prisma.challenge.count({
-        where: {
-          OR: [
-            { challengerId: userId, winnerId: { not: userId } },
-            { challengedId: userId, winnerId: { not: userId } },
-          ],
-          status: 'COMPLETED',
+        select: {
+          challengerId: true,
+          challengedId: true,
+          status: true,
+          winnerId: true,
         },
-      }),
-    ])
+      })
 
-    return {
-      challengesSent: sent,
-      challengesReceived: received,
-      challengesAccepted: accepted,
-      challengesRejected: rejected,
-      challengesWon: won,
-      challengesLost: lost,
-      acceptanceRate: received > 0 ? (accepted / received) * 100 : 0,
-      winRate: won + lost > 0 ? (won / (won + lost)) * 100 : 0,
+      // Calcular estadísticas en memoria
+      let sent = 0
+      let received = 0
+      let accepted = 0
+      let rejected = 0
+      let won = 0
+      let lost = 0
+
+      userChallenges.forEach((challenge) => {
+        // Challenges enviados
+        if (challenge.challengerId === userId) {
+          sent++
+        }
+
+        // Challenges recibidos
+        if (challenge.challengedId === userId) {
+          received++
+          
+          if (challenge.status === 'ACCEPTED') {
+            accepted++
+          } else if (challenge.status === 'REJECTED') {
+            rejected++
+          }
+        }
+
+        // Wins y losses (solo para challenges completados)
+        if (challenge.status === 'COMPLETED' && challenge.winnerId) {
+          if (challenge.winnerId === userId) {
+            won++
+          } else if (
+            challenge.challengerId === userId || 
+            challenge.challengedId === userId
+          ) {
+            lost++
+          }
+        }
+      })
+
+      return {
+        challengesSent: sent,
+        challengesReceived: received,
+        challengesAccepted: accepted,
+        challengesRejected: rejected,
+        challengesWon: won,
+        challengesLost: lost,
+        acceptanceRate: received > 0 ? (accepted / received) * 100 : 0,
+        winRate: won + lost > 0 ? (won / (won + lost)) * 100 : 0,
+      }
+    } catch (error) {
+      console.error('Error in getChallengeStats:', error)
+      // Retornar estadísticas vacías en caso de error
+      return {
+        challengesSent: 0,
+        challengesReceived: 0,
+        challengesAccepted: 0,
+        challengesRejected: 0,
+        challengesWon: 0,
+        challengesLost: 0,
+        acceptanceRate: 0,
+        winRate: 0,
+      }
     }
   },
 

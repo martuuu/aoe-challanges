@@ -24,67 +24,56 @@ export function useMonthlyStats() {
         setError(null)
 
         // Usar API routes en lugar de services directos
-        const [usersResponse, statsResponse] = await Promise.all([
-          fetch('/api/users'),
+        const [usersWithStatsResponse, monthlyStatsResponse] = await Promise.all([
+          fetch('/api/stats/user'), // Nuevo endpoint que devuelve todos los usuarios con sus stats
           fetch('/api/stats/monthly'),
         ])
 
-        if (!usersResponse.ok || !statsResponse.ok) {
+        if (!usersWithStatsResponse.ok || !monthlyStatsResponse.ok) {
           throw new Error('Error fetching monthly stats')
         }
 
-        const usersData = await usersResponse.json()
-        const statsData = await statsResponse.json()
+        const usersWithStatsData = await usersWithStatsResponse.json()
+        const monthlyStatsData = await monthlyStatsResponse.json()
 
-        const allUsers = usersData.users || []
-        const monthStats = statsData.stats || {}
-
-        // Interfaz temporal para datos de usuario de la API
-        interface APIUser {
-          id: string
-          alias: string
-          level?: number
-        }
-
-        // Obtener estadísticas de desafíos para cada usuario
-        const userChallengeStats = await Promise.all(
-          allUsers.map(async (user: APIUser) => {
-            try {
-              const challengeResponse = await fetch(`/api/stats/user/${user.id}`)
-              const challengeData = challengeResponse.ok ? await challengeResponse.json() : {}
-              return {
-                ...user,
-                challengeStats: challengeData.stats || {},
-                totalMatches: challengeData.totalMatches || 0,
-              }
-            } catch {
-              return {
-                ...user,
-                challengeStats: {},
-                totalMatches: 0,
-              }
-            }
-          })
-        )
+        const userChallengeStats = usersWithStatsData.userStats || []
+        const monthStats = monthlyStatsData.stats || {}
 
         // Calcular estadísticas adicionales con valores por defecto
-        const mostChallengesSent = userChallengeStats.reduce((prev, current) =>
+        interface UserWithStats {
+          userId: string
+          alias: string
+          level: number
+          challengeStats: {
+            challengesSent?: number
+            challengesReceived?: number
+            acceptanceRate?: number
+            challengesWon?: number
+            challengesLost?: number
+          }
+        }
+
+        const typedUserStats = userChallengeStats as UserWithStats[]
+
+        const mostChallengesSent = typedUserStats.reduce((prev: UserWithStats, current: UserWithStats) =>
           (current.challengeStats.challengesSent || 0) > (prev.challengeStats.challengesSent || 0)
             ? current
             : prev
         )
 
-        const bestAcceptanceRate = userChallengeStats
-          .filter(u => (u.challengeStats.challengesReceived || 0) > 0)
-          .reduce((prev, current) =>
+        const bestAcceptanceRate = typedUserStats
+          .filter((u: UserWithStats) => (u.challengeStats.challengesReceived || 0) > 0)
+          .reduce((prev: UserWithStats, current: UserWithStats) =>
             (current.challengeStats.acceptanceRate || 0) > (prev.challengeStats.acceptanceRate || 0)
               ? current
               : prev
           )
 
-        const mostActivePlayer = userChallengeStats.reduce((prev, current) =>
-          (current.totalMatches || 0) > (prev.totalMatches || 0) ? current : prev
-        )
+        const mostActivePlayer = typedUserStats.reduce((prev: UserWithStats, current: UserWithStats) => {
+          const prevMatches = (prev.challengeStats.challengesWon || 0) + (prev.challengeStats.challengesLost || 0)
+          const currentMatches = (current.challengeStats.challengesWon || 0) + (current.challengeStats.challengesLost || 0)
+          return currentMatches > prevMatches ? current : prev
+        })
 
         setStats({
           topWinner: monthStats.topWinner || { name: '', wins: 0 },
@@ -104,7 +93,7 @@ export function useMonthlyStats() {
           },
           mostActivePlayer: {
             name: mostActivePlayer.alias || '',
-            matches: mostActivePlayer.totalMatches || 0,
+            matches: (mostActivePlayer.challengeStats.challengesWon || 0) + (mostActivePlayer.challengeStats.challengesLost || 0),
           },
         })
       } catch (err) {
