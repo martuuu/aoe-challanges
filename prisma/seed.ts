@@ -1,10 +1,11 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { initialUsers } from '../lib/initial-users'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database...')
+  console.log('Seeding database...')
 
   // Limpiar datos existentes
   await prisma.groupMatchParticipant.deleteMany()
@@ -15,45 +16,39 @@ async function main() {
   await prisma.challenge.deleteMany()
   await prisma.user.deleteMany()
 
-  // Crear usuarios de testing
-  const testUsers = [
-    {
-      email: 'olimpomn@hotmail.com',
-      name: 'Tincho',
-      alias: 'Tincho',
-      password: await bcrypt.hash('tincho9', 10),
-      level: 3,
-      elo: 1200,
-    },
-    {
-      email: 'olimpomn@gmail.com',
-      name: 'Martu',
-      alias: 'Martu',
-      password: await bcrypt.hash('martu10', 10),
-      level: 3,
-      elo: 1200,
-    },
-    {
-      email: 'test@example.com',
-      name: 'TestUser',
-      alias: 'Test',
-      password: await bcrypt.hash('test11', 10),
-      level: 3,
-      elo: 1200,
-    },
-  ]
+  console.log('Cleared existing data')
 
-  for (const userData of testUsers) {
+  // Crear todos los usuarios de initial-users.ts
+  console.log('Creating users from initial-users.ts...')
+  
+  for (const userData of initialUsers) {
+    const hashedPassword = await bcrypt.hash(userData.password, 10)
+    
     const user = await prisma.user.create({
-      data: userData,
+      data: {
+        email: userData.email,
+        name: userData.name,
+        alias: userData.alias,
+        password: hashedPassword,
+        level: userData.level,
+        elo: userData.elo,
+        wins: userData.wins,
+        losses: userData.losses,
+        streak: userData.streak,
+        totalMatches: userData.wins + userData.losses,
+      },
     })
-    console.log(`✅ Created user: ${user.name} (${user.email})`)
+    
+    console.log(`Created user: ${user.name} (${user.alias}) - Email: ${user.email} - Password: ${userData.password}`)
   }
 
   // Crear algunos desafíos de ejemplo
   const users = await prisma.user.findMany()
+  console.log(`Created ${users.length} users total`)
 
   if (users.length >= 2) {
+    console.log('Creating sample challenges...')
+    
     await prisma.challenge.create({
       data: {
         challengerId: users[0].id,
@@ -74,15 +69,25 @@ async function main() {
       },
     })
 
-    console.log('✅ Created sample challenges')
+    console.log('Created sample challenges')
   }
 
-  console.log('🎉 Database seeded successfully!')
+  console.log('Database seeded successfully!')
+  
+  // Mostrar resumen de contraseñas
+  console.log('')
+  console.log('User Credentials Summary:')
+  console.log('================================')
+  for (const userData of initialUsers) {
+    console.log(`${userData.name} (${userData.alias}): ${userData.password}`)
+  }
+  console.log('================================')
+  console.log('')
 }
 
 main()
   .catch(e => {
-    console.error('❌ Error seeding database:', e)
+    console.error('Error seeding database:', e)
     process.exit(1)
   })
   .finally(async () => {
