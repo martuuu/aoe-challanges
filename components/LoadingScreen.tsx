@@ -19,12 +19,12 @@ export function LoadingScreen({ onLoadingComplete, componentsLoading }: LoadingS
   const [shouldComplete, setShouldComplete] = useState(false)
 
   // Verificar si todos los componentes han terminado de cargar
-  const allComponentsLoaded = componentsLoading ? 
-    !componentsLoading.pyramid && 
-    !componentsLoading.pendingChallenges && 
-    !componentsLoading.recentMatches && 
-    !componentsLoading.acceptedChallenges &&
-    !componentsLoading.users
+  const allComponentsLoaded = componentsLoading
+    ? !componentsLoading.pyramid &&
+      !componentsLoading.pendingChallenges &&
+      !componentsLoading.recentMatches &&
+      !componentsLoading.acceptedChallenges &&
+      !componentsLoading.users
     : true
 
   // Debug: Log del estado de componentes
@@ -36,22 +36,22 @@ export function LoadingScreen({ onLoadingComplete, componentsLoading }: LoadingS
         recentMatches: componentsLoading.recentMatches,
         acceptedChallenges: componentsLoading.acceptedChallenges,
         users: componentsLoading.users,
-        allLoaded: allComponentsLoaded
+        allLoaded: allComponentsLoaded,
       })
     }
   }, [componentsLoading, allComponentsLoaded])
 
   // Obtener el mensaje de carga actual
   const getLoadingMessage = () => {
-    if (!componentsLoading) return "Preparando el campo de batalla..."
-    
-    if (componentsLoading.users) return "Cargando jugadores..."
-    if (componentsLoading.pyramid) return "Construyendo pirámide..."
-    if (componentsLoading.pendingChallenges) return "Verificando desafíos pendientes..."
-    if (componentsLoading.recentMatches) return "Obteniendo historial de partidas..."
-    if (componentsLoading.acceptedChallenges) return "Cargando partidas confirmadas..."
-    
-    return "Finalizando preparativos..."
+    if (!componentsLoading) return 'Preparando el campo de batalla...'
+
+    if (componentsLoading.users) return 'Cargando jugadores...'
+    if (componentsLoading.pyramid) return 'Construyendo pirámide...'
+    if (componentsLoading.pendingChallenges) return 'Verificando desafíos pendientes...'
+    if (componentsLoading.recentMatches) return 'Obteniendo historial de partidas...'
+    if (componentsLoading.acceptedChallenges) return 'Cargando partidas confirmadas...'
+
+    return 'Finalizando preparativos...'
   }
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export function LoadingScreen({ onLoadingComplete, componentsLoading }: LoadingS
           // Si hemos llegado al 95% pero algunos componentes siguen cargando, mantener el progreso
           return prev
         }
-        
+
         // Incremento más pequeño y constante para suavidad
         const increment = Math.random() * 8 + 3
         return Math.min(prev + increment, 95)
@@ -84,7 +84,7 @@ export function LoadingScreen({ onLoadingComplete, componentsLoading }: LoadingS
       const timeout = setTimeout(() => {
         onLoadingComplete()
       }, 600)
-      
+
       return () => clearTimeout(timeout)
     }
   }, [shouldComplete, onLoadingComplete])
@@ -136,7 +136,7 @@ export function LoadingScreen({ onLoadingComplete, componentsLoading }: LoadingS
                 }}
                 transition={{
                   duration: 0.3,
-                  ease: "easeOut"
+                  ease: 'easeOut',
                 }}
               >
                 Age Panaderos
@@ -147,7 +147,7 @@ export function LoadingScreen({ onLoadingComplete, componentsLoading }: LoadingS
 
         {/* Barra de progreso */}
         <div className="w-80 mx-auto space-y-4">
-          <div className="relative">
+          {/* <div className="relative">
             <div className="w-full h-2 bg-green-200 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full"
@@ -156,7 +156,7 @@ export function LoadingScreen({ onLoadingComplete, componentsLoading }: LoadingS
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Porcentaje */}
           <motion.div

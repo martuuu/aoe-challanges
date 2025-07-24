@@ -134,6 +134,10 @@ export async function GET(
     }
 
     return NextResponse.json({
+      user: {
+        ...user,
+        winRate: user.totalMatches > 0 ? (user.wins / user.totalMatches) * 100 : 0,
+      },
       stats: userStats,
       success: true,
     })

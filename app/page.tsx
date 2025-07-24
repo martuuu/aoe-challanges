@@ -61,7 +61,7 @@ export default function AOEPyramid() {
   // Estados para datos reales
   const [allUsers, setAllUsers] = useState<{ id: string; alias: string; level: number }[]>([])
   // Estado de carga para operaciones async
-  const [, setIsLoadingOperations] = useState(false)
+  const [isLoadingOperations, setIsLoadingOperations] = useState(false)
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)
 
   // Cargar usuarios al inicializar
@@ -405,7 +405,11 @@ export default function AOEPyramid() {
     }
   }
 
-  const handleCreateGroupMatch = async (team1: string[], team2: string[]) => {
+  const handleCreateGroupMatch = async (
+    team1: string[],
+    team2: string[],
+    winner: 'team1' | 'team2'
+  ) => {
     if (!team1.length || !team2.length) {
       console.error('Validación fallida: equipos vacíos')
       showAlert('Ambos equipos deben tener al menos un jugador')
@@ -414,6 +418,8 @@ export default function AOEPyramid() {
 
     try {
       setIsLoadingOperations(true)
+
+      console.log('Creando partida grupal:', { team1, team2, winner })
 
       // Mostrar mensaje de éxito antes de recargar
       showAlert('Partida cargada')
@@ -438,8 +444,8 @@ export default function AOEPyramid() {
     <>
       <AnimatePresence mode="wait">
         {isLoading && (
-          <LoadingScreen 
-            key="loading" 
+          <LoadingScreen
+            key="loading"
             onLoadingComplete={handleLoadingComplete}
             componentsLoading={{
               pyramid: pyramidLoading,
@@ -501,6 +507,7 @@ export default function AOEPyramid() {
               createChallenge={createChallenge}
               createSuggestion={createSuggestion}
               handleCreateGroupMatch={handleCreateGroupMatch}
+              isLoadingOperations={isLoadingOperations}
             />
 
             {/* Desafíos Pendientes de Confirmación */}

@@ -7,13 +7,19 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { X, Users } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/loading'
 
 interface DragDropGroupMatchProps {
   allPlayers: string[]
   onCreateMatch: (team1: string[], team2: string[], winner: 'team1' | 'team2') => void
+  isLoadingOperations?: boolean
 }
 
-export function DragDropGroupMatch({ allPlayers, onCreateMatch }: DragDropGroupMatchProps) {
+export function DragDropGroupMatch({
+  allPlayers,
+  onCreateMatch,
+  isLoadingOperations = false,
+}: DragDropGroupMatchProps) {
   const [team1, setTeam1] = useState<string[]>([])
   const [team2, setTeam2] = useState<string[]>([])
   const [winner, setWinner] = useState<'team1' | 'team2' | null>(null)
@@ -276,10 +282,17 @@ export function DragDropGroupMatch({ allPlayers, onCreateMatch }: DragDropGroupM
 
       <Button
         onClick={handleCreateMatch}
-        disabled={team1.length === 0 || team2.length === 0 || !winner}
+        disabled={team1.length === 0 || team2.length === 0 || !winner || isLoadingOperations}
         className="w-full h-10 sm:h-12 text-sm sm:text-base bg-[#819067] hover:bg-[#0A400C] disabled:bg-gray-300"
       >
-        Cargar Resultado
+        {isLoadingOperations ? (
+          <div className="flex items-center gap-2">
+            <LoadingSpinner size="sm" variant="white" />
+            Cargando...
+          </div>
+        ) : (
+          'Cargar Resultado'
+        )}
       </Button>
     </div>
   )

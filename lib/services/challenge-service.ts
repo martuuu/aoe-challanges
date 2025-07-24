@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
-import type { Challenge, ChallengeType } from '@prisma/client'
+import type { Challenge, ChallengeType, User } from '@prisma/client'
+import { calculateEloChange } from '@/lib/ranking-system'
+import { userService } from './user-service'
 // import type { ChallengeStatus } from '@prisma/client' // No usado temporalmente
 
 export interface CreateChallengeData {
@@ -208,9 +210,13 @@ export const challengeService = {
 
   // Completar un desafío (crear match)
   async completeChallenge(challengeId: string, winnerId: string): Promise<Challenge> {
-    // Primero obtener el desafío
+    // Primero obtener el desafío con información de usuarios
     const challenge = await prisma.challenge.findUnique({
       where: { id: challengeId },
+      include: {
+        challenger: true,
+        challenged: true,
+      },
     })
 
     if (!challenge) {
@@ -220,8 +226,21 @@ export const challengeService = {
     const loserId =
       challenge.challengerId === winnerId ? challenge.challengedId : challenge.challengerId
 
+    // Obtener datos actuales de ambos usuarios
+    const [winner, loser] = await Promise.all([
+      prisma.user.findUnique({ where: { id: winnerId } }),
+      prisma.user.findUnique({ where: { id: loserId } }),
+    ])
+
+    if (!winner || !loser) {
+      throw new Error('Usuarios no encontrados')
+    }
+
+    // Calcular cambios de ELO
+    const { winnerNewElo, loserNewElo } = calculateEloChange(winner.elo, loser.elo, 32)
+
     // Crear el match
-    await prisma.match.create({
+    const match = await prisma.match.create({
       data: {
         winnerId,
         loserId,
@@ -230,6 +249,51 @@ export const challengeService = {
         completedAt: new Date(),
       },
     })
+
+    // Actualizar ELO y crear historial
+    await Promise.all([
+      userService.updateUserElo(
+        winnerId,
+        winnerNewElo,
+        match.id,
+        `Victoria vs ${loser.alias} (+${winnerNewElo - winner.elo})`
+      ),
+      userService.updateUserElo(
+        loserId,
+        loserNewElo,
+        match.id,
+        `Derrota vs ${winner.alias} (${loserNewElo - loser.elo})`
+      ),
+    ])
+
+    // Determinar cambios de nivel según las reglas de la pirámide
+    await this.applyPyramidRules(winner, loser, winnerId, loserId)
+
+    // Actualizar estadísticas básicas de los usuarios
+    await Promise.all([
+      prisma.user.update({
+        where: { id: winnerId },
+        data: {
+          wins: { increment: 1 },
+          totalMatches: { increment: 1 },
+          streak: winner.streak >= 0 ? winner.streak + 1 : 1, // Continúa racha positiva o inicia nueva
+          bestStreak:
+            winner.streak >= 0 && winner.streak + 1 > winner.bestStreak
+              ? winner.streak + 1
+              : winner.bestStreak,
+          elo: winnerNewElo,
+        },
+      }),
+      prisma.user.update({
+        where: { id: loserId },
+        data: {
+          losses: { increment: 1 },
+          totalMatches: { increment: 1 },
+          streak: loser.streak <= 0 ? loser.streak - 1 : -1, // Continúa racha negativa o inicia nueva
+          elo: loserNewElo,
+        },
+      }),
+    ])
 
     // Actualizar el desafío
     const updatedChallenge = await prisma.challenge.update({
@@ -241,25 +305,115 @@ export const challengeService = {
       },
     })
 
-    // Actualizar estadísticas de los usuarios
-    await Promise.all([
-      prisma.user.update({
-        where: { id: winnerId },
-        data: {
-          wins: { increment: 1 },
-          streak: { increment: 1 },
-        },
-      }),
-      prisma.user.update({
-        where: { id: loserId },
-        data: {
-          losses: { increment: 1 },
-          streak: 0, // Reset streak on loss
-        },
-      }),
-    ])
-
     return updatedChallenge
+  },
+
+  // Aplicar reglas de la pirámide
+  async applyPyramidRules(winner: User, loser: User, winnerId: string, loserId: string) {
+    const winnerLevel = winner.level
+    const loserLevel = loser.level
+
+    // REGLA 1: Si ganas contra alguien de nivel superior, intercambias posiciones
+    if (loserLevel < winnerLevel) {
+      // El ganador (nivel inferior) sube al nivel del perdedor
+      // El perdedor (nivel superior) baja al nivel del ganador
+      await Promise.all([
+        this.updateUserLevelWithHistory(winnerId, loserLevel, 'VICTORY_PROMOTION'),
+        this.updateUserLevelWithHistory(loserId, winnerLevel, 'DEFEAT_DEMOTION'),
+      ])
+      return
+    }
+
+    // REGLA 2: Si ganas 2 veces consecutivas contra alguien de tu mismo nivel, subes un nivel
+    if (loserLevel === winnerLevel && winnerLevel > 1) {
+      // Verificar si es la segunda victoria consecutiva contra el mismo nivel
+      const recentMatches = await prisma.match.findMany({
+        where: {
+          winnerId,
+          completedAt: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Últimos 30 días
+          },
+        },
+        include: {
+          loser: { select: { level: true, alias: true } },
+        },
+        orderBy: { completedAt: 'desc' },
+        take: 2,
+      })
+
+      // Verificar si las últimas 2 victorias fueron contra jugadores del mismo nivel
+      if (recentMatches.length >= 2) {
+        const lastTwoSameLevel = recentMatches.every(
+          match => match.loser && match.loser.level === winnerLevel
+        )
+
+        if (lastTwoSameLevel) {
+          await this.updateUserLevelWithHistory(winnerId, winnerLevel - 1, 'VICTORY_PROMOTION')
+        }
+      }
+    }
+
+    // REGLA 3: Si pierdes 2 veces consecutivas contra alguien de tu mismo nivel, bajas un nivel
+    if (loserLevel === winnerLevel && loserLevel < 4) {
+      const recentLosses = await prisma.match.findMany({
+        where: {
+          loserId,
+          completedAt: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Últimos 30 días
+          },
+        },
+        include: {
+          winner: { select: { level: true, alias: true } },
+        },
+        orderBy: { completedAt: 'desc' },
+        take: 2,
+      })
+
+      if (recentLosses.length >= 2) {
+        const lastTwoSameLevel = recentLosses.every(
+          match => match.winner && match.winner.level === loserLevel
+        )
+
+        if (lastTwoSameLevel) {
+          await this.updateUserLevelWithHistory(loserId, loserLevel + 1, 'CONSECUTIVE_DEFEATS')
+        }
+      }
+    }
+  },
+
+  // Actualizar nivel de usuario con historial
+  async updateUserLevelWithHistory(
+    userId: string,
+    newLevel: number,
+    reason: 'VICTORY_PROMOTION' | 'DEFEAT_DEMOTION' | 'CONSECUTIVE_DEFEATS' | 'ADMIN_ADJUSTMENT'
+  ) {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) return
+
+    const oldLevel = user.level
+
+    // Crear registro de cambio de nivel
+    await prisma.levelChange.create({
+      data: {
+        userId,
+        oldLevel,
+        newLevel,
+        reason,
+      },
+    })
+
+    // Actualizar el nivel del usuario y contadores de promociones/descensos
+    const isPromotion = newLevel < oldLevel
+    const isDemotion = newLevel > oldLevel
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        level: newLevel,
+        ...(isPromotion && { promotions: { increment: 1 } }),
+        ...(isDemotion && { demotions: { increment: 1 } }),
+      },
+    })
   },
 
   // Expirar desafíos vencidos

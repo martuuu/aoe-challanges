@@ -74,9 +74,9 @@ export function RecentMatches({
         return (
           <div>
             <div className="font-medium">
-              <span className="text-green-600">{match.winner.alias}</span>
+              <span className="text-green-800">{match.winner.alias}</span>
               <span className="mx-2">vs</span>
-              <span className="text-red-500">{match.loser.alias}</span>
+              <span className="text-green-600">{match.loser.alias}</span>
             </div>
             <div className="text-sm text-gray-600">Ganador: {match.winner.alias}</div>
           </div>

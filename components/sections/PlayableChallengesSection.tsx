@@ -1,9 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Target, Trophy, Clock, Play, Users } from 'lucide-react'
+import { Target, Trophy, Clock, Play, Users, Loader2 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useAuth } from '@/hooks/useAuth'
+import { useState } from 'react'
 
 type AcceptedChallenge = {
   id: string
@@ -28,18 +29,15 @@ export function PlayableChallengesSection({
   isLoading = false,
 }: PlayableChallengesSectionProps) {
   const { user } = useAuth()
+  const [confirmingChallenge, setConfirmingChallenge] = useState<string | null>(null)
 
   const isExpiringSoon = (expiresAt: string) => {
     const timeRemaining = new Date(expiresAt).getTime() - new Date().getTime()
     return timeRemaining < 4 * 60 * 60 * 1000 // Less than 4 hours
   }
 
-  // Filtrar solo desafíos donde el usuario logueado puede declarar ganador
-  const userPlayableChallenges = user
-    ? acceptedChallenges.filter(
-        challenge => challenge.challenger === user.alias || challenge.challenged === user.alias
-      )
-    : acceptedChallenges
+  // Mostrar TODOS los desafíos confirmados, no filtrar por usuario
+  const playableChallenges = acceptedChallenges
 
   const canDeclareWinner = (challenge: AcceptedChallenge) => {
     if (!user) return false
@@ -51,6 +49,15 @@ export function PlayableChallengesSection({
     return challenge.challenger === user.alias ? challenge.challenged : challenge.challenger
   }
 
+  const handleConfirmWinner = async (challengeId: string, winner: string) => {
+    setConfirmingChallenge(challengeId)
+    try {
+      await confirmWinner(challengeId, winner)
+    } finally {
+      setConfirmingChallenge(null)
+    }
+  }
+
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -59,17 +66,17 @@ export function PlayableChallengesSection({
           Desafíos Listos para Jugar
         </CardTitle>
         <CardDescription className="text-green-600">
-          {userPlayableChallenges.length === 0
+          {playableChallenges.length === 0
             ? 'No hay desafíos confirmados para jugar'
-            : `${userPlayableChallenges.length} desafío${
-                userPlayableChallenges.length > 1 ? 's' : ''
-              } esperando ser jugado${userPlayableChallenges.length > 1 ? 's' : ''}`}
+            : `${playableChallenges.length} desafío${
+                playableChallenges.length > 1 ? 's' : ''
+              } esperando ser jugado${playableChallenges.length > 1 ? 's' : ''}`}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <LoadingSpinner message="Cargando desafíos listos..." />
-        ) : userPlayableChallenges.length === 0 ? (
+        ) : playableChallenges.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Target className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No hay desafíos listos para jugar</p>
@@ -79,9 +86,10 @@ export function PlayableChallengesSection({
           </div>
         ) : (
           <div className="space-y-3">
-            {userPlayableChallenges.map(challenge => {
+            {playableChallenges.map(challenge => {
               const canDeclare = canDeclareWinner(challenge)
               const opponent = getOpponent(challenge)
+              const isConfirming = confirmingChallenge === challenge.id
 
               return (
                 <div
@@ -141,20 +149,30 @@ export function PlayableChallengesSection({
                       <div className="flex gap-2 sm:flex-col lg:flex-row">
                         <Button
                           size="sm"
-                          onClick={() => confirmWinner(challenge.id, user.alias)}
-                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1"
+                          onClick={() => handleConfirmWinner(challenge.id, user.alias)}
+                          disabled={isConfirming}
+                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 disabled:bg-green-300"
                         >
-                          <Trophy className="w-4 h-4" />
-                          Gané
+                          {isConfirming ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trophy className="w-4 h-4" />
+                          )}
+                          {isConfirming ? 'Guardando...' : 'Gané'}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => confirmWinner(challenge.id, opponent)}
-                          className="border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center gap-1"
+                          onClick={() => handleConfirmWinner(challenge.id, opponent)}
+                          disabled={isConfirming}
+                          className="border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center gap-1 disabled:border-gray-300 disabled:text-gray-400"
                         >
-                          <Trophy className="w-4 h-4" />
-                          Ganó {opponent}
+                          {isConfirming ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trophy className="w-4 h-4" />
+                          )}
+                          {isConfirming ? 'Guardando...' : `Ganó ${opponent}`}
                         </Button>
                       </div>
                     )}

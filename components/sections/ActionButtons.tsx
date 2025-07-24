@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import { DragDropGroupMatch } from '@/components/DragDropGroupMatch'
 import { useAuth } from '@/hooks/useAuth'
+import { LoadingSpinner } from '@/components/ui/loading'
 
 interface ActionButtonsProps {
   isDialogOpen: boolean
@@ -36,6 +37,7 @@ interface ActionButtonsProps {
   createChallenge: () => void
   createSuggestion?: () => void
   handleCreateGroupMatch: (team1: string[], team2: string[], winner: 'team1' | 'team2') => void
+  isLoadingOperations?: boolean
 }
 
 export function ActionButtons({
@@ -55,6 +57,7 @@ export function ActionButtons({
   createChallenge,
   createSuggestion = () => {},
   handleCreateGroupMatch,
+  isLoadingOperations = false,
 }: ActionButtonsProps) {
   const { user } = useAuth()
 
@@ -120,10 +123,17 @@ export function ActionButtons({
                   onClick={() => {
                     createChallenge()
                   }}
-                  disabled={!selectedChallenged}
+                  disabled={!selectedChallenged || isLoadingOperations}
                   className="w-full bg-green-600 hover:bg-green-700 text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Crear Desafío
+                  {isLoadingOperations ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" variant="white" />
+                      Creando...
+                    </div>
+                  ) : (
+                    'Crear Desafío'
+                  )}
                 </Button>
               </>
             )}
@@ -206,10 +216,17 @@ export function ActionButtons({
                 onClick={() => {
                   createSuggestion()
                 }}
-                disabled={!selectedChallenger || !selectedChallenged}
+                disabled={!selectedChallenger || !selectedChallenged || isLoadingOperations}
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Crear Sugerencia
+                {isLoadingOperations ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" variant="white" />
+                    Creando...
+                  </div>
+                ) : (
+                  'Crear Sugerencia'
+                )}
               </Button>
             </div>
           )}
@@ -239,7 +256,11 @@ export function ActionButtons({
             </DialogDescription>
           </DialogHeader>
           {user && (
-            <DragDropGroupMatch allPlayers={allPlayers} onCreateMatch={handleCreateGroupMatch} />
+            <DragDropGroupMatch
+              allPlayers={allPlayers}
+              onCreateMatch={handleCreateGroupMatch}
+              isLoadingOperations={isLoadingOperations}
+            />
           )}
         </DialogContent>
       </Dialog>

@@ -1,9 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, AlertCircle, Check, X, Users } from 'lucide-react'
+import { Calendar, Clock, AlertCircle, Check, X, Users, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useState } from 'react'
 
 type Challenge = {
   id: string
@@ -31,6 +32,20 @@ export function ChallengeSection({
   isLoading = false,
 }: ChallengeSectionProps) {
   const { user } = useAuth()
+  const [confirmingChallenges, setConfirmingChallenges] = useState<Set<string>>(new Set())
+
+  const handleConfirmChallenge = async (challengeId: string, action: 'accept' | 'reject') => {
+    setConfirmingChallenges(prev => new Set(prev).add(challengeId))
+    try {
+      await confirmChallenge(challengeId, action)
+    } finally {
+      setConfirmingChallenges(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(challengeId)
+        return newSet
+      })
+    }
+  }
 
   const isExpiringSoon = (expiresAt: string) => {
     const timeRemaining = new Date(expiresAt).getTime() - new Date().getTime()
@@ -139,6 +154,7 @@ export function ChallengeSection({
           <div className="space-y-3">
             {challengesNeedingConfirmation.map(challenge => {
               const canInteract = canUserInteract(challenge)
+              const isConfirming = confirmingChallenges.has(challenge.id)
 
               return (
                 <div
@@ -196,19 +212,29 @@ export function ChallengeSection({
                       <div className="flex gap-2 sm:flex-col lg:flex-row">
                         <Button
                           size="sm"
-                          onClick={() => confirmChallenge(challenge.id, 'accept')}
-                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1"
+                          onClick={() => handleConfirmChallenge(challenge.id, 'accept')}
+                          disabled={isConfirming}
+                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 disabled:opacity-50"
                         >
-                          <Check className="w-4 h-4" />
+                          {isConfirming ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
                           Confirmar
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => confirmChallenge(challenge.id, 'reject')}
-                          className="border-red-300 text-red-600 hover:bg-red-50 flex items-center gap-1"
+                          onClick={() => handleConfirmChallenge(challenge.id, 'reject')}
+                          disabled={isConfirming}
+                          className="border-red-300 text-red-600 hover:bg-red-50 flex items-center gap-1 disabled:opacity-50"
                         >
-                          <X className="w-4 h-4" />
+                          {isConfirming ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <X className="w-4 h-4" />
+                          )}
                           Rechazar
                         </Button>
                       </div>
