@@ -74,7 +74,10 @@ export function ActionButtons({
             Desafiar
           </Button>
         </DialogTrigger>
-        <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:w-auto max-w-md">
+        <DialogContent
+          className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:w-auto max-w-md !bg-white"
+          style={{ backgroundColor: 'white' }}
+        >
           <DialogHeader>
             <DialogTitle className="text-green-700 text-lg sm:text-xl">
               Nuevo Desafío Individual
@@ -153,7 +156,10 @@ export function ActionButtons({
             Sugerir
           </Button>
         </DialogTrigger>
-        <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:w-auto max-w-md">
+        <DialogContent
+          className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:w-auto max-w-md !bg-white"
+          style={{ backgroundColor: 'white' }}
+        >
           <DialogHeader>
             <DialogTitle className="text-orange-600 text-lg sm:text-xl">
               Sugerir Desafío
@@ -244,7 +250,10 @@ export function ActionButtons({
             Grupo
           </Button>
         </DialogTrigger>
-        <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto !bg-white"
+          style={{ backgroundColor: 'white' }}
+        >
           <DialogHeader>
             <DialogTitle className="text-green-700 text-lg sm:text-xl">
               Cargar Resultado de Partida en Grupo

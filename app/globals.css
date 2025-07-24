@@ -48,6 +48,26 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
+
+  /* Fix para fondos de modales en iOS */
+  [data-radix-dialog-content] {
+    background-color: white !important;
+    background: white !important;
+  }
+
+  /* Fix adicional para WebKit en iOS */
+  @supports (-webkit-appearance: none) {
+    [data-radix-dialog-content] {
+      background-color: #ffffff !important;
+      background-image: none !important;
+    }
+  }
+
+  /* Asegurar que no haya fondos heredados */
+  [data-radix-dialog-content]::before,
+  [data-radix-dialog-content]::after {
+    background: transparent !important;
+  }
 }
 
 @layer utilities {
