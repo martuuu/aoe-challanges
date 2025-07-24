@@ -1,270 +1,245 @@
-# AoE Historial - Liga de Age of Empires
+# 🏆 AoE Panaderos - Sistema de Liga y Desafíos
 
-Una aplicación web para gestionar partidas, rankings y historial de una liga de Age of Empires entre amigos.
+Sistema completo de gestión de liga para Age of Empires con ranking por pirámide, desafíos y estadísticas en tiempo real.
 
-## 🚀 Características
+## ✨ Características Principales
 
-- **Sistema de Pirámide**: Ranking jerárquico de jugadores
-- **Gestión de Desafíos**: Sistema para desafiar jugadores de niveles superiores
-- **Historial de Partidas**: Registro completo de todas las partidas jugadas
-- **Partidas Grupales**: Organización de equipos con drag & drop
-- **Dashboard en Tiempo Real**: Estadísticas y métricas de jugadores
-- **Responsive Design**: Optimizado para desktop y móvil
+- **🏛️ Sistema de Pirámide**: 4 niveles jerárquicos con reglas de ascenso/descenso
+- **⚔️ Desafíos Individuales**: Sistema completo de retos entre jugadores
+- **👥 Partidas Grupales**: Organización de equipos con drag & drop
+- **📊 Estadísticas Avanzadas**: Métricas mensuales y análisis de rendimiento
+- **🔄 Tiempo Real**: Actualizaciones automáticas de rankings y stats
+- **📱 Responsive**: Diseño optimizado para desktop y móvil
+- **🔐 Autenticación**: Sistema de login con contraseñas personalizadas
 
 ## 🛠️ Stack Tecnológico
 
 - **Frontend**: Next.js 15 + React 19 + TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui
-- **Base de Datos**: Supabase (PostgreSQL)
-- **Deployment**: Netlify
-- **Estado**: React Hooks (useState, useEffect)
+- **Styling**: Tailwind CSS + shadcn/ui + Framer Motion
+- **Base de Datos**: Supabase (PostgreSQL) + Prisma ORM
+- **Deployment**: Netlify (Static Export)
+- **Estado**: React Context + Custom Hooks optimizados
 
-## � Quick Start
+## 🚀 Quick Start
 
 ```bash
 # 1. Clonar e instalar
 git clone <repository-url>
 cd aoe-historial
-./setup.sh
+npm install
 
 # 2. Configurar variables de entorno
+cp .env.example .env.local
 # Editar .env.local con tus credenciales de Supabase
 
 # 3. Configurar base de datos
-npm run db:setup
+npm run db:push
+npm run db:seed
 
 # 4. Ejecutar en desarrollo
 npm run dev
 ```
 
-### Prerrequisitos
-
-- Node.js 18+
-- pnpm (recomendado) o npm
-- Cuenta en Supabase
-
-### 1. Clonar el repositorio
-
-```bash
-git clone <repository-url>
-cd aoe-historial
-```
-
-### 2. Instalar dependencias
-
-```bash
-# Opción 1: Usar el script automático
-./setup.sh
-
-# Opción 2: Manual
-npm install
-# Si hay errores de peer dependencies:
-npm install --legacy-peer-deps
-```
-
-**Nota:** El proyecto incluye un archivo `.npmrc` que maneja automáticamente los conflictos de dependencias.
-
-### 3. Configurar variables de entorno
-
-Copia el archivo de ejemplo y configura tus credenciales:
-
-```bash
-cp .env.example .env.local
-```
-
-Edita `.env.local` con tus credenciales de Supabase:
+### 📋 Configuración de Variables de Entorno
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=tu-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
+# Supabase
+DATABASE_URL="postgresql://[user]:[password]@[host]:[port]/[db]?pgbouncer=true"
+DIRECT_URL="postgresql://[user]:[password]@[host]:[port]/[db]"
+
+# Para desarrollo local también puedes usar:
+# DATABASE_URL="file:./dev.db"
 ```
 
-### 4. Configurar la base de datos
+## 🎮 Usuarios de Prueba
 
-Ejecuta el script para crear las tablas y datos iniciales:
+El sistema incluye usuarios predefinidos para testing:
 
-```bash
-npm run db:setup
-```
+| Usuario  | Email                | Contraseña | Nivel |
+| -------- | -------------------- | ---------- | ----- |
+| Tincho   | olimpomn@hotmail.com | tincho9    | 3     |
+| Martu    | olimpomn@gmail.com   | martu10    | 3     |
+| TestUser | test@example.com     | test11     | 4     |
 
-Este comando creará:
+## 🏗️ Arquitectura del Sistema
 
-- Tabla `users` con los jugadores iniciales
-- Tabla `matches` para el historial de partidas
-- Tabla `challenges` para los desafíos pendientes
-- Datos de prueba con emails de todos los amigos
+### Sistema de Pirámide
 
-### 5. Ejecutar en desarrollo
+1. **El lechero** (Rey) - ELO 1400+
+2. **Protesis Ok** - ELO 1300-1399
+3. **Construyo mas atras** - ELO 1100-1299 (inicial)
+4. **manco juga a otra cosa** - ELO 0-1099
 
-```bash
-npm run dev
-```
+### Reglas de Desafíos
 
-La aplicación estará disponible en `http://localhost:3000`
+- ✅ Se puede desafiar al mismo nivel o 1 nivel superior
+- ✅ Ganar a nivel superior = intercambio de posiciones
+- ✅ 2 victorias consecutivas en mismo nivel = ascenso
+- ✅ 1 derrota vs inferior O 2 derrotas consecutivas = descenso
 
-## 🗄️ Estructura de la Base de Datos
+### Performance Optimizada
 
-### Tabla `users`
+- **Backend Processing**: Cálculos pesados en servidor
+- **Endpoints Específicos**: `/api/stats/monthly-optimized`, `/api/challenges-optimized`
+- **Caching Inteligente**: React Query patterns en hooks personalizados
+- **Static Export**: Build optimizado para Netlify
+
+## � Estructura de la Base de Datos
+
+### Tablas Principales
 
 ```sql
-- id (UUID, PK)
-- name (VARCHAR)
-- email (VARCHAR, UNIQUE)
-- level (INTEGER) -- 1: Rey, 2-4: Niveles de la pirámide
-- created_at (TIMESTAMP)
-```
+-- Usuarios y Autenticación
+users: id, name, alias, email, level, elo, wins, losses, streak
 
-### Tabla `matches`
+-- Sistema de Desafíos
+challenges: id, challenger, challenged, status, type, expires_at
 
-```sql
-- id (UUID, PK)
-- challenger (VARCHAR)
-- challenged (VARCHAR)
-- winner (VARCHAR, nullable)
-- date (DATE)
-- status (VARCHAR) -- 'pending', 'completed', 'cancelled'
-- created_at (TIMESTAMP)
-```
+-- Historial de Partidas
+matches: id, winnerId, loserId, completedAt, type
 
-### Tabla `challenges`
+-- Partidas Grupales
+group_matches: id, team1, team2, winning_team, completedAt
 
-```sql
-- id (UUID, PK)
-- challenger (VARCHAR)
-- challenged (VARCHAR)
-- status (VARCHAR) -- 'pending', 'accepted', 'rejected'
-- created_at (TIMESTAMP)
-- expires_at (TIMESTAMP)
-```
-
-## 🎮 Jugadores Iniciales
-
-La aplicación viene configurada con los siguientes jugadores:
-
-- **Nivel 1 (Rey)**: Chino
-- **Nivel 2**: Ruso, Mosca
-- **Nivel 3**: Tincho, Pana, Chaquinha
-- **Nivel 4**: Dany, Bicho, Seba, Tata, Mati
-
-Todos con emails `@agepanaderos.com` para pruebas.
-
-## 📱 Funcionalidades
-
-### Dashboard Principal
-
-- Vista de la pirámide de jugadores
-- Estadísticas generales
-- Botón para crear nuevas partidas
-
-### Sistema de Desafíos
-
-- Los jugadores pueden desafiar a otros del nivel inmediatamente superior
-- Desafíos con tiempo de expiración
-- Estados: pendiente, aceptado, rechazado
-
-### Gestión de Partidas
-
-- Registro de partidas 1v1
-- Partidas grupales con drag & drop para formar equipos
-- Historial completo con filtros
-
-### Estadísticas
-
-- Ratio de victorias/derrotas
-- Partidas jugadas
-- Posición en el ranking
-- Historial detallado
-
-## 🚀 Deploy en Netlify
-
-### Opción 1: Deploy Automático
-
-1. Conecta tu repositorio con Netlify
-2. Configura las variables de entorno en Netlify:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. El deploy se hará automáticamente con cada push
-
-### Opción 2: Deploy Manual
-
-```bash
-npm run build
-npm run deploy
+-- Historial de Cambios
+level_changes: id, userId, oldLevel, newLevel, reason, createdAt
+elo_history: id, userId, oldElo, newElo, matchId, createdAt
 ```
 
 ## 🛠️ Scripts Disponibles
 
 ```bash
-npm run dev          # Ejecutar en desarrollo
-npm run build        # Construir para producción
-npm run start        # Ejecutar en producción
-npm run lint         # Revisar código con ESLint
-npm run lint:fix     # Corregir automáticamente errores de ESLint
-npm run type-check   # Verificar tipos de TypeScript
-npm run db:setup     # Configurar base de datos inicial
-npm run db:reset     # Resetear base de datos
+# Desarrollo
+npm run dev              # Servidor de desarrollo
+npm run build            # Build para producción
+npm run start            # Servidor de producción
+
+# Base de Datos
+npm run db:push          # Aplicar schema a DB
+npm run db:seed          # Poblar con datos de prueba
+npm run db:studio        # Abrir Prisma Studio
+npm run db:generate      # Generar cliente Prisma
+
+# Calidad de Código
+npm run lint             # Verificar código
+npm run lint:fix         # Corregir errores automáticamente
+npm run type-check       # Verificar tipos TypeScript
 ```
 
-## 🧪 Testing
+## 🚀 Deploy en Netlify
 
-Para probar la aplicación con datos reales:
+### Configuración Automática
 
-1. Ejecuta `npm run db:setup` para poblar con datos iniciales
-2. Usa los emails configurados para simular usuarios
-3. Crea partidas de prueba desde la interfaz
+1. Conectar repositorio en Netlify
+2. Build settings:
+   - **Build command**: `npm run build`
+   - **Publish directory**: `out`
+3. Variables de entorno:
+   ```
+   DATABASE_URL=tu-database-url
+   DIRECT_URL=tu-database-url
+   ```
 
-## 🔧 Desarrollo
+### Características del Deploy
+
+- ✅ Static Export optimizado
+- ✅ Routing automático con `netlify.toml`
+- ✅ Caching headers configurados
+- ✅ Build automático en cada push
+
+## 📱 Funcionalidades Detalladas
+
+### Dashboard Principal
+
+- 🏛️ Pirámide visual con 4 niveles
+- 📈 Widgets de estadísticas mensuales
+- ⚡ Actualizaciones en tiempo real
+- 🎯 Sugerencias de desafíos inteligentes
+
+### Sistema de Desafíos
+
+- 🎯 Validación automática de reglas
+- ⏰ Expiración automática (48h para aceptar)
+- 🏆 Procesamiento automático de resultados
+- 📊 Historial completo de desafíos
+
+### Partidas Grupales
+
+- 👥 Drag & drop para formar equipos
+- ⚖️ Balanceado automático por ELO
+- 🏆 Resultados por equipos
+- 📈 Estadísticas grupales
+
+### Estadísticas Avanzadas
+
+- 🏆 Top ganadores del mes
+- 📈 Mejor racha actual
+- 🎯 Ratio de aceptación de desafíos
+- 📊 Métricas de rendimiento personalizadas
+
+## � Desarrollo y Mantenimiento
+
+### Estructura del Proyecto
+
+```
+aoe-historial/
+├── app/                    # Next.js App Router
+│   ├── api/               # API Routes optimizadas
+│   ├── settings/          # Página de configuración
+│   └── info/              # Información del sistema
+├── components/            # Componentes React
+│   ├── sections/          # Secciones principales
+│   └── ui/                # Componentes base (shadcn/ui)
+├── hooks/                 # Custom hooks optimizados
+├── lib/                   # Servicios y utilidades
+│   ├── services/          # Servicios de datos
+│   └── auth-client.ts     # Sistema de autenticación
+├── prisma/               # ORM y migraciones
+└── public/               # Assets estáticos
+```
+
+### Performance y Optimizaciones
+
+- **Backend Processing**: Cálculos pesados movidos al servidor
+- **Hooks Optimizados**: `useMonthlyStatsOptimized`, `usePendingChallengesOptimized`
+- **Endpoints Específicos**: APIs targeted para cada funcionalidad
+- **React Patterns**: useMemo, useCallback para evitar re-renders
+- **Static Export**: Build optimizado para mejor rendimiento
 
 ### Agregar Nuevos Jugadores
 
-1. Agrega el usuario en Supabase o modifica `scripts/setup-database.sql`
-2. Actualiza la pirámide inicial en `app/page.tsx`
-3. Ejecuta `npm run db:reset && npm run db:setup`
+1. Usar Prisma Studio: `npm run db:studio`
+2. O modificar `prisma/seed.ts` y ejecutar `npm run db:seed`
 
-### Estructura de Componentes
+### Troubleshooting Común
 
+```bash
+# Reset completo de base de datos
+npm run db:push --force-reset
+npm run db:seed
+
+# Regenerar cliente Prisma
+npm run db:generate
+
+# Verificar tipos
+npm run type-check
+
+# Limpiar y reinstalar
+rm -rf node_modules .next
+npm install
 ```
-components/
-├── ui/                 # Componentes de shadcn/ui
-├── DragDropGroupMatch  # Componente para partidas grupales
-├── PlayerCard          # Tarjeta de jugador
-└── theme-provider      # Proveedor de temas
-```
 
-## 🐛 Solución de Problemas
+## 📞 Soporte y Contacto
 
-### Error de conexión a Supabase
-
-- Verifica las credenciales en `.env.local`
-- Asegúrate de que el proyecto de Supabase esté activo
-
-### Error en build
-
-- Ejecuta `npm run type-check` para verificar errores de TypeScript
-- Revisa `npm run lint` para errores de código
-
-### Problemas con la base de datos
-
-- Ejecuta `npm run db:reset` seguido de `npm run db:setup`
+- **Repositorio**: `aoe-challanges` (branch: main)
+- **Owner**: martuuu
+- **Deployment**: Netlify automático
+- **Database**: Supabase PostgreSQL
 
 ## 📄 Licencia
 
-Este proyecto es para uso privado entre amigos. No está destinado para uso comercial.
-
-## 🤝 Contribuir
-
-Para agregar nuevas funcionalidades:
-
-1. Crea una nueva rama
-2. Implementa la funcionalidad
-3. Actualiza este README si es necesario
-4. Crea un pull request
-
-## 📞 Contacto
-
-Para dudas o sugerencias, contacta al administrador del proyecto.
+Proyecto privado para uso entre amigos. No destinado para uso comercial.
 
 ---
 
-**¡Que comience la batalla en Age of Empires!** ⚔️👑
+**🏆 ¡Que gane el mejor panadero! 🍞⚔️**

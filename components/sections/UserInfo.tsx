@@ -67,21 +67,23 @@ export function UserInfo() {
   }
 
   // Función para obtener colores de estrellas
-  const getStarColors = (index: number, earnedStars: number) => {
-    if (index >= earnedStars) return 'text-gray-300' // No ganada
+  const getStarColors = (index: number, earnedStars: number, isEarned: boolean) => {
+    // Definir colores base para cada posición de estrella
+    const starColors = [
+      'text-amber-600', // Bronce
+      'text-gray-400', // Plata
+      'text-yellow-500', // Oro
+      'text-cyan-400', // Diamante
+    ]
 
-    switch (index) {
-      case 0:
-        return 'text-amber-600' // Bronce
-      case 1:
-        return 'text-gray-400' // Plata
-      case 2:
-        return 'text-yellow-500' // Oro
-      case 3:
-        return 'text-cyan-400' // Diamante (estrella oculta)
-      default:
-        return 'text-gray-300'
+    if (!isEarned) {
+      // Si no está ganada, mostrar solo el borde en el color correspondiente
+      return starColors[index]
     }
+
+    // Si está ganada, todas las estrellas ganadas toman el color del nivel más alto alcanzado
+    const highestLevelReached = earnedStars - 1 // El índice del nivel más alto
+    return starColors[highestLevelReached]
   }
 
   return (
@@ -100,7 +102,7 @@ export function UserInfo() {
                   // Nivel 4 = 0 estrellas, Nivel 3 = 1 estrella, Nivel 2 = 2 estrellas, Nivel 1 = 3 estrellas, Nivel 0 = 4 estrellas (oculto)
                   const earnedStars = Math.max(0, 4 - user.level)
                   const isEarned = index < earnedStars
-                  const starColor = getStarColors(index, earnedStars)
+                  const starColor = getStarColors(index, earnedStars, isEarned)
                   const isHiddenStar = index === 3
                   const isMaxLevel = user.level === 0 // Nivel 0 sería el máximo con 4 estrellas
 
@@ -116,7 +118,7 @@ export function UserInfo() {
                     >
                       <svg
                         viewBox="0 0 24 24"
-                        fill={isEarned ? 'currentColor' : 'white'}
+                        fill={isEarned ? 'currentColor' : 'none'}
                         stroke="currentColor"
                         strokeWidth="2"
                         className="w-full h-full"
