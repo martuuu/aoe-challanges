@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Target, Trophy, Clock, Play, Users } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useAuth } from '@/hooks/useAuth'
 
 type AcceptedChallenge = {
@@ -17,12 +18,14 @@ interface PlayableChallengesSectionProps {
   acceptedChallenges: AcceptedChallenge[]
   confirmWinner: (challengeId: string, winner: string) => Promise<void>
   formatTimeRemaining: (expiresAt: string) => string
+  isLoading?: boolean
 }
 
 export function PlayableChallengesSection({
   acceptedChallenges,
   confirmWinner,
   formatTimeRemaining,
+  isLoading = false,
 }: PlayableChallengesSectionProps) {
   const { user } = useAuth()
 
@@ -64,7 +67,9 @@ export function PlayableChallengesSection({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {userPlayableChallenges.length === 0 ? (
+        {isLoading ? (
+          <LoadingSpinner message="Cargando desafíos listos..." />
+        ) : userPlayableChallenges.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Target className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No hay desafíos listos para jugar</p>

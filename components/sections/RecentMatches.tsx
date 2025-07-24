@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { History, Users, X, Clock, Trophy } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 type Match = {
   id: string
@@ -38,13 +39,17 @@ type CancelledChallenge = {
 interface RecentMatchesProps {
   recentMatches: Match[]
   cancelledChallenges?: CancelledChallenge[]
+  rejectedChallenges?: CancelledChallenge[]
   formatTimeAgo: (dateString: string) => string
+  isLoading?: boolean
 }
 
 export function RecentMatches({
   recentMatches,
   cancelledChallenges = [],
+  rejectedChallenges = [],
   formatTimeAgo,
+  isLoading = false,
 }: RecentMatchesProps) {
   const getMatchResultDisplay = (match: Match) => {
     if (match.type === 'group') {
@@ -154,7 +159,7 @@ export function RecentMatches({
     )
   }
 
-  // Combinar matches y desafíos cancelados para mostrar en orden cronológico
+  // Combinar matches, desafíos cancelados y rechazados para mostrar en orden cronológico
   const allRecentActivity = [
     ...recentMatches.map(match => ({
       id: match.id,
@@ -167,6 +172,12 @@ export function RecentMatches({
       type: 'cancelled' as const,
       data: cancelled,
       timestamp: cancelled.expires_at || cancelled.created_at,
+    })),
+    ...rejectedChallenges.map(rejected => ({
+      id: rejected.id,
+      type: 'rejected' as const,
+      data: rejected,
+      timestamp: rejected.expires_at || rejected.created_at,
     })),
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
@@ -186,7 +197,9 @@ export function RecentMatches({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {allRecentActivity.length === 0 ? (
+        {isLoading ? (
+          <LoadingSpinner message="Cargando historial..." />
+        ) : allRecentActivity.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <History className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No hay partidas recientes</p>
@@ -216,6 +229,41 @@ export function RecentMatches({
                           )}
                         </div>
                         {getMatchResultDisplay(activity.data)}
+                      </div>
+                    ) : activity.type === 'rejected' ? (
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="destructive" className="flex items-center gap-1">
+                            <X className="w-3 h-3" />
+                            Rechazado
+                          </Badge>
+                          {activity.data.type === 'SUGGESTION' && (
+                            <Badge variant="secondary" className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              Sugerencia
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="font-medium text-gray-800">
+                          {activity.data.type === 'SUGGESTION' ? (
+                            <>
+                              Sugerencia rechazada:{' '}
+                              <span className="text-blue-600">{activity.data.challenger}</span> vs{' '}
+                              <span className="text-blue-600">{activity.data.challenged}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-blue-600">{activity.data.challenger}</span>{' '}
+                              desafió a{' '}
+                              <span className="text-blue-600">{activity.data.challenged}</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {activity.data.rejectedBy
+                            ? `Rechazado por ${activity.data.rejectedBy}`
+                            : 'Desafío rechazado'}
+                        </div>
                       </div>
                     ) : (
                       getCancelledDisplay(activity.data)

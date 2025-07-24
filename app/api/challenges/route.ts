@@ -6,11 +6,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { challengerId, challengedId, type } = body
 
-    console.log('=== API CHALLENGE POST ===')
-    console.log('Request body completo:', JSON.stringify(body, null, 2))
-    console.log('challengerId:', challengerId)
-    console.log('challengedId:', challengedId)
-    console.log('type:', type)
 
     if (!challengerId || !challengedId) {
       return NextResponse.json(
@@ -25,7 +20,6 @@ export async function POST(request: NextRequest) {
       type: type || 'INDIVIDUAL',
     })
 
-    console.log('Challenge created successfully:', challenge.id)
     return NextResponse.json({ challenge, success: true })
   } catch (error) {
     console.error('Error creando desafío:', error)
@@ -65,7 +59,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { challengeId, userId, action } = body
 
-    console.log('Updating challenge player status:', { challengeId, userId, action })
 
     if (!challengeId || !userId || !action) {
       return NextResponse.json(
@@ -81,7 +74,6 @@ export async function PUT(request: NextRequest) {
     const status = action === 'accept' ? 'ACCEPTED' : 'REJECTED'
     const challenge = await challengeService.updatePlayerStatus(challengeId, userId, status)
 
-    console.log('Challenge player status updated successfully:', challenge.id)
     return NextResponse.json({ challenge, success: true })
   } catch (error) {
     console.error('Error actualizando estado del jugador en desafío:', error)

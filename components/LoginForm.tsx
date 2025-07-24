@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading'
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { validateEmail } from '@/lib/auth-client'
+import { useCustomAlert } from '@/components/ui/custom-alert'
 
 interface LoginFormProps {
   onSuccess?: () => void
@@ -15,6 +16,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const { login, isLoading, error, clearError } = useAuth()
+  const { showAlert } = useCustomAlert()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -67,6 +69,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
     try {
       await login(formData)
+      showAlert('Log-in exitoso')
       onSuccess?.()
     } catch {
       // El error ya se maneja en el hook useAuth

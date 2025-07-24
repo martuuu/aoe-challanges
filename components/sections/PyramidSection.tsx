@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -11,77 +11,83 @@ import {
 import { LogIn, Crown } from 'lucide-react'
 import { LoginForm } from '@/components/LoginForm'
 import { useAuth } from '@/hooks/useAuth'
+import { usePyramid, PyramidData, PyramidUser } from '@/hooks/usePyramid'
 
 interface PyramidSectionProps {
-  pyramid: { 1: string[]; 2: string[]; 3: string[]; 4: string[] }
-  setPyramid: React.Dispatch<
-    React.SetStateAction<{ 1: string[]; 2: string[]; 3: string[]; 4: string[] }>
-  >
+  pyramid?: PyramidData
+  setPyramid?: React.Dispatch<React.SetStateAction<PyramidData>>
   isLoginDialogOpen: boolean
   setIsLoginDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 const levelInfo = {
   1: {
-    name: 'El lechero',
-    icon: Crown,
+    name: 'Wololo',
     badge: 'default',
-    bgClass: 'bg-[#819067] text-white',
-    cardColor: 'bg-gradient-to-br from-[#819067] to-[#B1AB86] text-white',
-    streak: '🔥 5/5',
+    bgClass: 'bg-green-400 text-white font-bold',
+    cardColor: 'bg-green-400 text-white',
   },
   2: {
-    name: 'Protesis Ok',
-    icon: Crown,
-    badge: 'secondary',
-    bgClass: 'bg-[#B1AB86] text-[#0A400C]',
-    cardColor: 'bg-gradient-to-br from-[#B1AB86] to-[#D2C1B6] text-[#0A400C]',
-    streak: '⚡ 4/5',
+    name: 'Aceptable',
+    badge: 'default',
+    bgClass: 'bg-green-300 text-white',
+    cardColor: 'bg-green-300 text-white',
   },
   3: {
-    name: 'Construyo mas atras',
-    icon: Crown,
-    badge: 'outline',
-    bgClass: 'border-blue-200 bg-blue-50 text-blue-700',
-    cardColor: 'bg-gradient-to-br from-[#D2C1B6] to-[#F9F3EF] text-[#1B3C53]',
-    streak: '📈 3/5',
+    name: 'Manquito',
+    badge: 'default',
+    bgClass: 'bg-green-600 text-white',
+    cardColor: 'bg-green-600 text-white',
   },
   4: {
-    name: 'manco juga a otra cosa',
-    icon: Crown,
-    badge: 'soft',
-    bgClass: 'border-orange-200 bg-orange-50 text-orange-700',
-    cardColor: 'bg-gradient-to-br from-[#F79B72] to-[#F5865A] text-white',
-    streak: '💀 2/5',
+    name: 'Protesis',
+    badge: 'default',
+    bgClass: 'bg-green-800 text-white',
+    cardColor: 'bg-green-800 text-white',
   },
 } as const
 
 export function PyramidSection({
-  pyramid,
+  pyramid: externalPyramid,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setPyramid,
   isLoginDialogOpen,
   setIsLoginDialogOpen,
 }: PyramidSectionProps) {
   const { user } = useAuth()
+  const { pyramidData, isLoading } = usePyramid()
+
+  // Usar datos externos si están disponibles, sino usar datos del hook
+  const currentPyramid = externalPyramid || pyramidData
 
   const handleLoginSuccess = () => {
     setIsLoginDialogOpen(false)
   }
 
+  if (isLoading) {
+    return (
+      <Card className="shadow-card">
+        <CardHeader className="bg-gradient-to-r from-[#819067] text-white rounded-t-xl">
+          <CardTitle className="text-center">Cargando pirámide...</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#819067]"></div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="shadow-card">
-      <CardHeader className="bg-gradient-to-r from-[#819067] to-[#B1AB86] text-white rounded-t-xl">
+      <CardHeader className="bg-green-600 text-white rounded-t-xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-white">
               <Crown className="w-5 h-5 sm:w-6 sm:h-6" />
-              Ranking 2025
+              Piramide 2025
             </CardTitle>
-            <CardDescription className="text-white text-sm">
-              Los jugadores pueden desafiar a su mismo nivel o 1 nivel superior. Están obligados a
-              aceptar el desafío de los niveles inferiores.
-            </CardDescription>
           </div>
 
           {/* Botón ingresar como jugador - Solo si no está logueado */}
@@ -112,10 +118,9 @@ export function PyramidSection({
       </CardHeader>
       <CardContent className="p-6 sm:p-8 bg-gradient-to-br from-green-50/30 to-blue-50/30">
         <div className="space-y-8 sm:space-y-12">
-          {Object.entries(pyramid).map(([level, players]) => {
+          {Object.entries(currentPyramid).map(([level, players]) => {
             const levelNum = Number(level) as keyof typeof levelInfo
             const info = levelInfo[levelNum]
-            const IconComponent = info.icon
 
             return (
               <div key={level} className="flex flex-col items-center space-y-4 sm:space-y-6">
@@ -126,23 +131,19 @@ export function PyramidSection({
                       variant={info.badge}
                       className={`text-sm sm:text-base px-3 sm:px-4 py-2 shadow-sm hover:shadow-md transition-all duration-300 ${info.bgClass}`}
                     >
-                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       {info.name}
                     </Badge>
-                  </div>
-                  <div className="text-xs sm:text-sm text-blue-600 font-medium">
-                    Racha promedio: {info.streak}
                   </div>
                 </div>
 
                 {/* Contenedor de jugadores */}
                 <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-                  {players.map(player => (
+                  {(players as PyramidUser[]).map(player => (
                     <div
-                      key={player}
+                      key={player.id}
                       className={`
                         ${info.cardColor}
-                        px-4 sm:px-6 py-3 sm:py-4 
+                        px-4 sm:px-3 py-2 sm:py-4 
                         rounded-xl font-semibold text-sm sm:text-base
                         shadow-lg hover:shadow-xl transition-all duration-300 
                         hover:-translate-y-1 hover:scale-105
@@ -151,7 +152,10 @@ export function PyramidSection({
                       `}
                     >
                       {level === '1' && <span className="mr-2 text-xl">👑</span>}
-                      {player}
+                      <div>{player.alias}</div>
+                      <div className="text-xs opacity-75">
+                        {player.wins}W - {player.losses}L
+                      </div>
                     </div>
                   ))}
                 </div>

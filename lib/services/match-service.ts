@@ -1,11 +1,19 @@
 import { prisma } from '@/lib/prisma'
 import type { Match, MatchType } from '@prisma/client'
+import { pyramidService } from './pyramid-service'
 
 export interface CreateGroupMatchData {
   team1: string[] // aliases
   team2: string[] // aliases
   winner: 'team1' | 'team2'
   type?: MatchType
+}
+
+export interface CreateIndividualMatchData {
+  winnerId: string
+  loserId: string
+  challengeId?: string
+  notes?: string
 }
 
 export interface MatchWithUsers extends Match {
@@ -24,6 +32,68 @@ export interface MatchWithUsers extends Match {
 }
 
 export const matchService = {
+  // Crear un match individual (de desafío)
+  async createIndividualMatch(data: CreateIndividualMatchData): Promise<{
+    match: Match
+    pyramidChanges: Array<{
+      userId: string
+      oldLevel: number
+      newLevel: number
+      reason: string
+    }>
+  }> {
+    const { winnerId, loserId, challengeId, notes } = data
+
+    // Crear el match
+    const match = await prisma.match.create({
+      data: {
+        winnerId,
+        loserId,
+        type: 'INDIVIDUAL',
+        challengeId,
+        notes,
+        completedAt: new Date(),
+      },
+    })
+
+    // Actualizar estadísticas de los usuarios
+    await Promise.all([
+      prisma.user.update({
+        where: { id: winnerId },
+        data: {
+          wins: { increment: 1 },
+          totalMatches: { increment: 1 },
+          streak: { increment: 1 },
+        },
+      }),
+      prisma.user.update({
+        where: { id: loserId },
+        data: {
+          losses: { increment: 1 },
+          totalMatches: { increment: 1 },
+          streak: 0, // Reset streak on loss
+        },
+      }),
+    ])
+
+    // Procesar reglas de la pirámide
+    const pyramidChanges = await pyramidService.processMatchResult(winnerId, loserId, 'challenge')
+
+    // Actualizar el desafío como completado si existe
+    if (challengeId) {
+      await prisma.challenge.update({
+        where: { id: challengeId },
+        data: {
+          status: 'COMPLETED',
+          winnerId,
+          completedAt: new Date(),
+        },
+      })
+    }
+
+    return { match, pyramidChanges }
+  },
+
   // Crear un match grupal directamente (sin desafío previo)
   async createGroupMatch(data: CreateGroupMatchData): Promise<Match> {
     const { team1, team2, winner } = data
@@ -85,9 +155,6 @@ export const matchService = {
       data: participants,
     })
 
-    console.log(
-      `Match grupal creado: ${team1.join(', ')} vs ${team2.join(', ')}. Ganador: ${winner}`
-    )
     return match
   },
 

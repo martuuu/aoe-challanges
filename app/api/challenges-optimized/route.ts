@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ChallengeStatus } from '@prisma/client'
+import { ChallengeStatus, ChallengeType } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,17 +10,36 @@ export async function GET(request: NextRequest) {
     const recent = searchParams.get('recent')
 
     const whereClause: {
-      status?: ChallengeStatus
-      OR?: Array<{ challengerId: string } | { challengedId: string }>
+      status?: ChallengeStatus | { in: ChallengeStatus[] }
+      OR?: Array<{ challengerId: string } | { challengedId: string } | { type: ChallengeType }>
+      expiresAt?: { gte: Date }
     } = {}
 
     // Filtros específicos
     if (status) {
-      whereClause.status = status.toUpperCase() as ChallengeStatus
+      if (status === 'pending') {
+        // Para status=pending, necesitamos challenges que aún necesitan confirmación
+        // Esto incluye tanto PENDING como challenges que aún no están completamente aceptados
+        whereClause.status = { in: ['PENDING'] as ChallengeStatus[] }
+        // Excluir challenges expirados
+        whereClause.expiresAt = { gte: new Date() }
+      } else {
+        whereClause.status = status.toUpperCase() as ChallengeStatus
+      }
     }
 
     if (userId) {
-      whereClause.OR = [{ challengerId: userId }, { challengedId: userId }]
+      if (status === 'pending') {
+        // Para challenges pendientes, mostrar TODOS los challenges pendientes para que todos puedan ver quién desafió a quién
+        // No aplicar filtro por userId para status=pending
+      } else {
+        // Para otros status (accepted, completed, etc.), solo mostrar los que involucran al usuario
+        whereClause.OR = [
+          { challengerId: userId }, // Usuario es el desafiante
+          { challengedId: userId }, // Usuario es el desafiado
+          { type: 'SUGGESTION' as ChallengeType }, // Todas las sugerencias
+        ]
+      }
     }
 
     // Limitar resultados si es "recent"

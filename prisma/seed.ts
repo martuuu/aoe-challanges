@@ -5,8 +5,6 @@ import { initialUsers } from '../lib/initial-users'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('Seeding database...')
-
   // Limpiar datos existentes
   await prisma.groupMatchParticipant.deleteMany()
   await prisma.groupMatch.deleteMany()
@@ -15,11 +13,6 @@ async function main() {
   await prisma.match.deleteMany()
   await prisma.challenge.deleteMany()
   await prisma.user.deleteMany()
-
-  console.log('Cleared existing data')
-
-  // Crear todos los usuarios de initial-users.ts
-  console.log('Creating users from initial-users.ts...')
 
   for (const userData of initialUsers) {
     const hashedPassword = await bcrypt.hash(userData.password, 10)
@@ -58,7 +51,7 @@ async function main() {
         challengedId: users[1].id,
         status: 'PENDING',
         type: 'INDIVIDUAL',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas
+        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 horas
       },
     })
 
@@ -68,7 +61,7 @@ async function main() {
         challengedId: users[2] ? users[2].id : users[0].id,
         status: 'PENDING',
         type: 'SUGGESTION',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas
+        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 horas
       },
     })
     */

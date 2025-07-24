@@ -94,7 +94,6 @@ export const authService = {
           // Verificar si el usuario tiene el formato de ID correcto (cuid vs number)
           // Si es un número, significa que es de la versión antigua, forzar logout
           if (typeof user.id === 'number') {
-            console.log('Usuario con ID antiguo detectado, forzando logout...')
             this.logout()
             return null
           }
@@ -136,7 +135,6 @@ export const authService = {
           // Crear una nueva copia del array con el usuario actualizado
           const updatedUser = { ...usersDB[userIndex], ...updates }
           // En lugar de mutar, creamos un nuevo array (esto se manejará mejor con Supabase)
-          console.log('Usuario actualizado:', updatedUser)
           resolve(updatedUser)
         } else {
           reject(new Error('Usuario no encontrado'))

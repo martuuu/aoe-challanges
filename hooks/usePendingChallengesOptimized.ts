@@ -20,6 +20,7 @@ export function usePendingChallengesOptimized(userId?: string) {
   const [error, setError] = useState<string | null>(null)
 
   const fetchChallenges = useCallback(async () => {
+
     if (!userId) {
       setIsLoading(false)
       return
@@ -28,7 +29,6 @@ export function usePendingChallengesOptimized(userId?: string) {
     try {
       setIsLoading(true)
       setError(null)
-
       // Usar endpoint optimizado con filtros específicos
       const response = await fetch(`/api/challenges-optimized?status=pending&userId=${userId}`)
       if (!response.ok) {
@@ -36,13 +36,9 @@ export function usePendingChallengesOptimized(userId?: string) {
       }
 
       const data = await response.json()
-      console.log('🔍 Hook Debug - API Response:', data)
-      console.log('🔍 Hook Debug - Challenges count:', data.challenges?.length || 0)
-      console.log('🔍 Hook Debug - UserId received:', userId)
 
       // El API ya filtra por userId, no necesitamos filtrar nuevamente aquí
       // Los challenges devueltos ya son específicos para este usuario
-      console.log('🔍 Hook Debug - Setting challenges directly from API:', data.challenges)
       setChallenges(data.challenges)
     } catch (err) {
       console.error('Error fetching challenges:', err)

@@ -59,16 +59,16 @@ export function ActionButtons({
   const { user } = useAuth()
 
   return (
-    <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+    <div className="flex justify-center gap-2">
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
           <Button
-            size="lg"
-            className="bg-[#819067] hover:bg-[#0A400C] text-white shadow-lg w-full sm:w-auto"
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white border-0 rounded-md px-4 py-2 h-9 text-sm font-medium transition-colors"
             disabled={!user}
           >
-            <Swords className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-            Desafío Individual
+            <Swords className="w-4 h-4 mr-1.5" />
+            Desafiar
           </Button>
         </DialogTrigger>
         <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:w-auto max-w-md">
@@ -78,7 +78,7 @@ export function ActionButtons({
             </DialogTitle>
             <DialogDescription className="text-blue-600 text-sm">
               {user
-                ? `${user.alias} desafiará al oponente seleccionado. El desafiado tendrá 24 horas para responder.`
+                ? `${user.alias} desafiará al oponente seleccionado. El desafiado tendrá 48 horas para responder.`
                 : 'Debes iniciar sesión para crear desafíos.'}
             </DialogDescription>
           </DialogHeader>
@@ -121,7 +121,7 @@ export function ActionButtons({
                     createChallenge()
                   }}
                   disabled={!selectedChallenged}
-                  className="w-full bg-[#819067] hover:bg-[#0A400C] text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Crear Desafío
                 </Button>
@@ -135,12 +135,12 @@ export function ActionButtons({
       <Dialog open={isSuggestDialogOpen} onOpenChange={setIsSuggestDialogOpen}>
         <DialogTrigger asChild>
           <Button
-            size="lg"
-            className="shadow-lg w-full sm:w-auto bg-[#F79B72] hover:bg-[#F5865A] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            size="sm"
+            className="bg-orange-500 hover:bg-orange-600 text-white border-0 rounded-md px-4 py-2 h-9 text-sm font-medium transition-colors"
             disabled={!user}
           >
-            <Heart className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-            Sugerir Desafío
+            <Heart className="w-4 h-4 mr-1.5" />
+            Sugerir
           </Button>
         </DialogTrigger>
         <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:w-auto max-w-md">
@@ -150,7 +150,7 @@ export function ActionButtons({
             </DialogTitle>
             <DialogDescription className="text-blue-600 text-sm">
               {user
-                ? 'Sugiere un desafío entre dos jugadores. Ambos deberán aceptar la sugerencia.'
+                ? 'Sugiere un desafío entre dos jugadores. Ambos tendrán 48 horas para aceptar la sugerencia.'
                 : 'Debes iniciar sesión para sugerir desafíos.'}
             </DialogDescription>
           </DialogHeader>
@@ -207,7 +207,7 @@ export function ActionButtons({
                   createSuggestion()
                 }}
                 disabled={!selectedChallenger || !selectedChallenged}
-                className="w-full bg-[#F79B72] hover:bg-[#F5865A] text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white h-10 sm:h-11 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Crear Sugerencia
               </Button>
@@ -219,13 +219,12 @@ export function ActionButtons({
       <Dialog open={isGroupMatchDialogOpen} onOpenChange={setIsGroupMatchDialogOpen}>
         <DialogTrigger asChild>
           <Button
-            size="lg"
-            variant="outline"
-            className="shadow-lg w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white border-0 rounded-md px-4 py-2 h-9 text-sm font-medium transition-colors"
             disabled={!user}
           >
-            <Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-            Cargar Partida en Grupo
+            <Users className="w-4 h-4 mr-1.5" />
+            Grupo
           </Button>
         </DialogTrigger>
         <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-1rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto">

@@ -56,11 +56,11 @@ export const challengeService = {
     if (data.expiresAt) {
       expiresAt = data.expiresAt
     } else if (data.type === 'SUGGESTION') {
-      // Sugerencias expiran en 2 semanas
-      expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      // Sugerencias expiran en 48 horas para ser aceptadas
+      expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000)
     } else {
-      // Desafíos individuales expiran en 1 semana
-      expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      // Desafíos individuales expiran en 48 horas para ser aceptados
+      expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000)
     }
 
     // Crear el challenge con estados individuales según el tipo
@@ -174,6 +174,7 @@ export const challengeService = {
       challengedStatus?: 'ACCEPTED' | 'REJECTED' | 'PENDING'
       status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED'
       acceptedAt?: Date
+      expiresAt?: Date
     } = {}
 
     if (challenge.challengerId === userId) {
@@ -195,6 +196,8 @@ export const challengeService = {
     if (status === 'ACCEPTED' && otherPlayerStatus === 'ACCEPTED') {
       updateData.status = 'ACCEPTED'
       updateData.acceptedAt = new Date()
+      // Extender el plazo a 1 semana para concretar el partido
+      updateData.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     }
 
     return await prisma.challenge.update({

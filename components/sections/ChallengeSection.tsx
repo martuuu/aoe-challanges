@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar, Clock, AlertCircle, Check, X, Users } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 type Challenge = {
   id: string
@@ -20,22 +21,16 @@ interface ChallengeSectionProps {
   pendingChallenges: Challenge[]
   confirmChallenge: (challengeId: string, action: 'accept' | 'reject') => Promise<void>
   formatTimeRemaining: (expiresAt: string) => string
+  isLoading?: boolean
 }
 
 export function ChallengeSection({
   pendingChallenges,
   confirmChallenge,
   formatTimeRemaining,
+  isLoading = false,
 }: ChallengeSectionProps) {
   const { user } = useAuth()
-
-  console.log('🔍 ChallengeSection Debug:', {
-    pendingChallenges,
-    pendingChallengesLength: pendingChallenges.length,
-    user: user?.alias || 'no user',
-    userIdType: typeof user?.id,
-    userId: user?.id,
-  })
 
   const isExpiringSoon = (expiresAt: string) => {
     const timeRemaining = new Date(expiresAt).getTime() - new Date().getTime()
@@ -46,10 +41,13 @@ export function ChallengeSection({
   const challengesNeedingConfirmation = pendingChallenges.filter(challenge => {
     // Si es una sugerencia, ambos deben haber aceptado
     if (challenge.type === 'suggestion') {
-      return challenge.challengerStatus !== 'accepted' || challenge.challengedStatus !== 'accepted'
+      const shouldShow =
+        challenge.challengerStatus !== 'accepted' || challenge.challengedStatus !== 'accepted'
+      return shouldShow
     } else {
       // Si es un desafío directo, solo el desafiado debe haber aceptado
-      return challenge.challengedStatus !== 'accepted'
+      const shouldShow = challenge.challengedStatus !== 'accepted'
+      return shouldShow
     }
   })
 
@@ -130,7 +128,9 @@ export function ChallengeSection({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {challengesNeedingConfirmation.length === 0 ? (
+        {isLoading ? (
+          <LoadingSpinner message="Cargando desafíos..." />
+        ) : challengesNeedingConfirmation.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No hay desafíos pendientes</p>

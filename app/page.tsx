@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { HeroSection } from '@/components/sections/HeroSection'
 import { PyramidSection } from '@/components/sections/PyramidSection'
 import { StatsWidgets } from '@/components/sections/StatsWidgets'
@@ -8,42 +9,48 @@ import { ActionButtons } from '@/components/sections/ActionButtons'
 import { ChallengeSection } from '@/components/sections/ChallengeSection'
 import { PlayableChallengesSection } from '@/components/sections/PlayableChallengesSection'
 import { RecentMatches } from '@/components/sections/RecentMatches'
-import { UserInfo } from '@/components/UserInfo'
+import { UserInfo } from '@/components/sections/UserInfo'
+import { LoadingScreen } from '@/components/LoadingScreen'
 import { useAuth } from '@/hooks/useAuth'
 import { usePendingChallengesOptimized } from '@/hooks/usePendingChallengesOptimized'
 import { useRecentHistoryOptimized } from '@/hooks/useRecentHistoryOptimized'
 import { useAcceptedChallengesOptimized } from '@/hooks/useAcceptedChallengesOptimized'
-import {
-  clientChallengeService,
-  clientMatchService,
-  clientUserService,
-} from '@/lib/services/client-services'
+import { clientUserService } from '@/lib/services/client-services'
 import { initialUsers } from '@/lib/initial-users'
 import { mockData } from '@/lib/mock-data'
+import { usePyramid } from '@/hooks/usePyramid'
+import { useCustomAlert } from '@/components/ui/custom-alert'
 // Importar las contraseñas para desarrollo (mostrar en consola)
 import '@/lib/dev-passwords'
 
-// Actualizar pirámide con los nuevos usuarios (todos empiezan en nivel 3)
-const initialPyramid = {
-  1: [] as string[], // Nadie al principio
-  2: [] as string[], // Nadie al principio
-  3: initialUsers.map(user => user.alias), // Todos empiezan aquí
-  4: [] as string[], // Nadie al principio
-}
-
 export default function AOEPyramid() {
   const { user } = useAuth()
+  const { showAlert, AlertContainer } = useCustomAlert()
+  const { pyramidData, isLoading: pyramidLoading } = usePyramid()
+
+  // Debug: Log del estado de pyramidLoading
+  useEffect(() => {
+    console.log('Pyramid loading state:', pyramidLoading)
+  }, [pyramidLoading])
+
+  // Estado para controlar la pantalla de carga
+  const [isLoading, setIsLoading] = useState(true)
+  const [showMainContent, setShowMainContent] = useState(false)
 
   // Hooks para datos reales - HABILITADOS ahora que Supabase funciona
-  const { challenges: pendingChallengesFromHook } = usePendingChallengesOptimized(
-    user?.id?.toString()
-  )
-  const { recentMatches: recentMatchesFromHook } = useRecentHistoryOptimized()
-  const { acceptedChallenges, refetch: refetchAccepted } = useAcceptedChallengesOptimized()
+
+  const { challenges: pendingChallengesFromHook, isLoading: pendingLoading } =
+    usePendingChallengesOptimized(user?.id?.toString())
+  const { recentMatches: recentMatchesFromHook, isLoading: recentLoading } =
+    useRecentHistoryOptimized()
+  const {
+    acceptedChallenges,
+    refetch: refetchAccepted,
+    isLoading: acceptedLoading,
+  } = useAcceptedChallengesOptimized()
 
   // Eliminar las variables fallback no utilizadas - usar mock solo en caso de error
 
-  const [pyramid, setPyramid] = useState(initialPyramid)
   const [selectedChallenger, setSelectedChallenger] = useState('')
   const [selectedChallenged, setSelectedChallenged] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -54,13 +61,15 @@ export default function AOEPyramid() {
   // Estados para datos reales
   const [allUsers, setAllUsers] = useState<{ id: string; alias: string; level: number }[]>([])
   // Estado de carga para operaciones async
-  const [, setIsLoading] = useState(false)
+  const [, setIsLoadingOperations] = useState(false)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
 
   // Cargar usuarios al inicializar
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        setIsLoading(true)
+        setIsLoadingOperations(true)
+        setIsLoadingUsers(true)
         const users = await clientUserService.getAllUsers()
         setAllUsers(
           users.map((u: { id: string; alias: string; level: number }) => ({
@@ -74,12 +83,27 @@ export default function AOEPyramid() {
         // Fallback a usuarios iniciales si falla la DB
         setAllUsers(initialUsers.map(u => ({ id: u.id.toString(), alias: u.alias, level: 3 })))
       } finally {
-        setIsLoading(false)
+        setIsLoadingOperations(false)
+        setIsLoadingUsers(false)
       }
     }
 
     loadUsers()
   }, [])
+
+  // Función para manejar cuando termine la carga
+  const handleLoadingComplete = () => {
+    setIsLoading(false)
+    setShowMainContent(true)
+  }
+
+  // Convertir pyramidData a estructura legacy para compatibilidad
+  const pyramid = {
+    1: pyramidData[1]?.map(p => p.alias) || [],
+    2: pyramidData[2]?.map(p => p.alias) || [],
+    3: pyramidData[3]?.map(p => p.alias) || [],
+    4: pyramidData[4]?.map(p => p.alias) || [],
+  }
 
   const allPlayers = Object.values(pyramid).flat()
 
@@ -87,6 +111,7 @@ export default function AOEPyramid() {
   const recentMatches = recentMatchesFromHook || mockData.recentMatches || []
   const pendingChallenges = pendingChallengesFromHook || mockData.pendingChallenges || []
   const realAcceptedChallenges = acceptedChallenges || mockData.acceptedChallenges || []
+  const rejectedChallenges: never[] = [] // TODO: Implementar hook para desafíos rechazados
   const realRefetchAccepted =
     refetchAccepted || (() => console.log('Mock refetch accepted challenges'))
 
@@ -180,36 +205,41 @@ export default function AOEPyramid() {
 
   const createChallenge = async () => {
     if (!user || !selectedChallenged) {
-      alert('Debes estar logueado y seleccionar un oponente')
+      showAlert('Debes estar logueado y seleccionar un oponente')
       return
     }
 
     try {
-      setIsLoading(true)
-      console.log('Buscando usuario desafiado...')
+      setIsLoadingOperations(true)
 
       const challengedUser = allUsers.find(u => u.alias === selectedChallenged)
 
-      console.log('Usuario desafiado encontrado:', challengedUser)
-
       if (!challengedUser) {
         console.error('Usuario desafiado no encontrado en allUsers')
-        alert('Error: No se pudo encontrar el usuario seleccionado')
+        showAlert('Error: No se pudo encontrar el usuario seleccionado')
         return
       }
 
-      console.log('Enviando petición a la API...')
-      const result = await clientChallengeService.createChallenge({
-        challengerId: user.id.toString(),
-        challengedId: challengedUser.id,
-        type: 'INDIVIDUAL',
+      // Llamar al API para crear el challenge
+      const response = await fetch('/api/challenges', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          challengerId: user.id,
+          challengedId: challengedUser.id,
+          type: 'INDIVIDUAL',
+        }),
       })
 
-      console.log('Respuesta de la API:', result)
-      console.log(`Desafío individual creado: ${user.alias} vs ${selectedChallenged}`)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error creando desafío')
+      }
 
       // Mostrar mensaje de éxito antes de recargar
-      alert(`¡Desafío creado exitosamente! ${user.alias} vs ${selectedChallenged}`)
+      showAlert('Desafío enviado')
 
       setIsDialogOpen(false)
       setSelectedChallenger('')
@@ -219,55 +249,52 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando desafío:', error)
-      alert(
+      showAlert(
         `Error creando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`
       )
     } finally {
-      setIsLoading(false)
+      setIsLoadingOperations(false)
     }
   }
 
   const createSuggestion = async () => {
-    console.log('createSuggestion llamada - Debug Info:', {
-      selectedChallenger,
-      selectedChallenged,
-      allUsers: allUsers.length,
-      firstValidation: !selectedChallenger || !selectedChallenged,
-    })
-
     if (!selectedChallenger || !selectedChallenged) {
       console.error('Validación fallida: selectedChallenger o selectedChallenged están vacíos')
-      alert('Por favor selecciona ambos jugadores')
+      showAlert('Por favor selecciona ambos jugadores')
       return
     }
 
     try {
-      setIsLoading(true)
-      console.log('Buscando usuarios en allUsers...')
+      setIsLoadingOperations(true)
 
       const challengerUser = allUsers.find(u => u.alias === selectedChallenger)
       const challengedUser = allUsers.find(u => u.alias === selectedChallenged)
 
-      console.log('Usuarios encontrados:', { challengerUser, challengedUser })
-
       if (!challengerUser || !challengedUser) {
         console.error('Usuarios no encontrados en allUsers')
-        alert('Error: No se pudieron encontrar los usuarios seleccionados')
+        showAlert('Error: No se pudieron encontrar los usuarios seleccionados')
         return
       }
 
-      console.log('Enviando petición a la API...')
-      const result = await clientChallengeService.createChallenge({
-        challengerId: challengerUser.id,
-        challengedId: challengedUser.id,
-        type: 'SUGGESTION',
+      // Llamar al API para crear la sugerencia
+      const response = await fetch('/api/challenges', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          challengerId: challengerUser.id,
+          challengedId: challengedUser.id,
+          type: 'SUGGESTION',
+        }),
       })
 
-      console.log('Respuesta de la API:', result)
-      console.log(`Sugerencia de desafío creada: ${selectedChallenger} vs ${selectedChallenged}`)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error creando sugerencia')
+      }
 
-      // Mostrar mensaje de éxito antes de recargar
-      alert(`¡Sugerencia creada exitosamente! ${selectedChallenger} vs ${selectedChallenged}`)
+      showAlert('Sugerencia creada')
 
       setIsSuggestDialogOpen(false)
       setSelectedChallenger('')
@@ -277,127 +304,119 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando sugerencia:', error)
-      alert(
+      showAlert(
         `Error creando sugerencia: ${error instanceof Error ? error.message : 'Error desconocido'}`
       )
     } finally {
-      setIsLoading(false)
+      setIsLoadingOperations(false)
     }
   }
 
   const confirmChallenge = async (challengeId: string, action: 'accept' | 'reject') => {
     try {
-      setIsLoading(true)
+      setIsLoadingOperations(true)
 
       if (!user?.id) {
         console.error('Usuario no autenticado')
-        alert('Error: Usuario no autenticado')
+        showAlert('Error: Usuario no autenticado')
         return
       }
 
-      console.log(`${action === 'accept' ? 'Aceptando' : 'Rechazando'} desafío...`)
-      const result = await clientChallengeService.updatePlayerStatus(
-        challengeId,
-        user.id.toString(),
-        action
-      )
-      console.log('Respuesta API updatePlayerStatus:', result)
-      console.log(`Desafío ${challengeId} ${action === 'accept' ? 'aceptado' : 'rechazado'}`)
-      alert(`¡Desafío ${action === 'accept' ? 'aceptado' : 'rechazado'} exitosamente!`)
+      // Call the API to accept or reject the challenge
+      const response = await fetch(`/api/challenges/${challengeId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: action,
+          reason: action === 'reject' ? 'Rechazado por el usuario' : undefined,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(
+          errorData.error || `Error ${action === 'accept' ? 'aceptando' : 'rechazando'} el desafío`
+        )
+      }
+
+      const result = await response.json()
+      console.log('Challenge updated:', result)
+
+      showAlert(`Desafío ${action === 'accept' ? 'aceptado' : 'rechazado'}`)
 
       // Recargar datos después de procesar
       window.location.reload()
     } catch (error) {
       console.error('Error confirmando desafío:', error)
-      alert(
+      showAlert(
         `Error confirmando desafío: ${error instanceof Error ? error.message : 'Error desconocido'}`
       )
     } finally {
-      setIsLoading(false)
+      setIsLoadingOperations(false)
     }
   }
 
   const confirmWinner = async (challengeId: string, winner: string) => {
-    console.log('confirmWinner llamada - Debug Info:', {
-      challengeId,
-      winner,
-      allUsers: allUsers.length,
-    })
-
     try {
-      setIsLoading(true)
+      setIsLoadingOperations(true)
 
-      console.log('Buscando usuario ganador...')
       const winnerUser = allUsers.find(u => u.alias === winner)
 
       if (!winnerUser) {
         console.error('Usuario ganador no encontrado:', winner)
-        alert('Error: Usuario ganador no encontrado')
+        showAlert('Error: Usuario ganador no encontrado')
         return
       }
 
-      console.log('Usuario ganador encontrado:', winnerUser)
-      console.log('Enviando petición para completar desafío...')
+      // Call the API to complete the challenge
+      const response = await fetch(`/api/challenges/${challengeId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'complete',
+          winnerId: winnerUser.id,
+        }),
+      })
 
-      const result = await clientChallengeService.completeChallenge(challengeId, winnerUser.id)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error completando el desafío')
+      }
 
-      console.log('Respuesta API confirmWinner:', result)
-      console.log(`Ganador confirmado para desafío ${challengeId}: ${winner}`)
+      const result = await response.json()
+      console.log('Challenge completed:', result)
 
-      alert(`¡Ganador confirmado exitosamente! ${winner}`)
+      showAlert('Partido guardado')
 
       // Recargar datos después de confirmar
       realRefetchAccepted()
       window.location.reload()
     } catch (error) {
       console.error('Error confirmando ganador:', error)
-      alert(
+      showAlert(
         `Error confirmando ganador: ${error instanceof Error ? error.message : 'Error desconocido'}`
       )
     } finally {
-      setIsLoading(false)
+      setIsLoadingOperations(false)
     }
   }
 
-  const handleCreateGroupMatch = async (
-    team1: string[],
-    team2: string[],
-    winner: 'team1' | 'team2'
-  ) => {
-    console.log('handleCreateGroupMatch llamada - Debug Info:', {
-      team1,
-      team2,
-      winner,
-      validTeams: team1.length > 0 && team2.length > 0,
-    })
-
+  const handleCreateGroupMatch = async (team1: string[], team2: string[]) => {
     if (!team1.length || !team2.length) {
       console.error('Validación fallida: equipos vacíos')
-      alert('Ambos equipos deben tener al menos un jugador')
+      showAlert('Ambos equipos deben tener al menos un jugador')
       return
     }
 
     try {
-      setIsLoading(true)
-      console.log('Enviando petición a la API...')
-
-      const result = await clientMatchService.createGroupMatch({
-        team1,
-        team2,
-        winner,
-      })
-
-      console.log('Respuesta de la API:', result)
-      console.log(
-        `Partida grupal creada: ${team1.join(', ')} vs ${team2.join(', ')}. Ganador: ${winner}`
-      )
+      setIsLoadingOperations(true)
 
       // Mostrar mensaje de éxito antes de recargar
-      alert(
-        `¡Partida grupal creada exitosamente!\n${team1.join(', ')} vs ${team2.join(
-          ', '
-        )}\nGanador: Equipo ${winner === 'team1' ? '1' : '2'}`
-      )
+      showAlert('Partida cargada')
 
       setIsGroupMatchDialogOpen(false)
 
@@ -405,87 +424,112 @@ export default function AOEPyramid() {
       window.location.reload()
     } catch (error) {
       console.error('Error creando partida grupal:', error)
-      alert(
+      showAlert(
         `Error creando partida grupal: ${
           error instanceof Error ? error.message : 'Error desconocido'
         }`
       )
     } finally {
-      setIsLoading(false)
+      setIsLoadingOperations(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
-      {/* Patrón de fondo sutil */}
-      <div className="absolute inset-0 opacity-5">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23456882' fillOpacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-      </div>
+    <>
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <LoadingScreen 
+            key="loading" 
+            onLoadingComplete={handleLoadingComplete}
+            componentsLoading={{
+              pyramid: pyramidLoading,
+              pendingChallenges: pendingLoading || false,
+              recentMatches: recentLoading || false,
+              acceptedChallenges: acceptedLoading || false,
+              users: isLoadingUsers,
+            }}
+          />
+        )}
+      </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto p-4 space-y-8 relative z-10">
-        {/* Información de usuario logueado */}
-        <UserInfo />
+      {showMainContent && (
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
+          <AlertContainer />
+          {/* Patrón de fondo sutil */}
+          <div className="absolute inset-0 opacity-5">
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23456882' fillOpacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+              }}
+            />
+          </div>
 
-        {/* Sección Hero */}
-        <HeroSection />
+          <div className="max-w-7xl mx-auto p-4 space-y-8 relative z-10">
+            {/* Información de usuario logueado */}
+            <UserInfo />
 
-        {/* Pirámide */}
-        <PyramidSection
-          pyramid={pyramid}
-          setPyramid={setPyramid}
-          isLoginDialogOpen={isLoginDialogOpen}
-          setIsLoginDialogOpen={setIsLoginDialogOpen}
-        />
+            {/* Sección Hero */}
+            <HeroSection />
 
-        {/* Widgets de Estadísticas */}
-        <StatsWidgets />
+            {/* Pirámide */}
+            <PyramidSection
+              isLoginDialogOpen={isLoginDialogOpen}
+              setIsLoginDialogOpen={setIsLoginDialogOpen}
+            />
 
-        {/* Botones de Acción */}
-        <ActionButtons
-          isDialogOpen={isDialogOpen}
-          setIsDialogOpen={setIsDialogOpen}
-          isGroupMatchDialogOpen={isGroupMatchDialogOpen}
-          setIsGroupMatchDialogOpen={setIsGroupMatchDialogOpen}
-          isSuggestDialogOpen={isSuggestDialogOpen}
-          setIsSuggestDialogOpen={setIsSuggestDialogOpen}
-          selectedChallenger={selectedChallenger}
-          setSelectedChallenger={setSelectedChallenger}
-          selectedChallenged={selectedChallenged}
-          setSelectedChallenged={setSelectedChallenged}
-          allPlayers={user ? getPlayersForSuggestions() : allPlayers}
-          getAvailableOpponents={user ? getAvailableOpponentsForLoggedUser : getAvailableOpponents}
-          getHeadToHead={getHeadToHead}
-          createChallenge={createChallenge}
-          createSuggestion={createSuggestion}
-          handleCreateGroupMatch={handleCreateGroupMatch}
-        />
+            {/* Widgets de Estadísticas */}
+            <StatsWidgets />
 
-        {/* Desafíos Pendientes de Confirmación */}
-        <ChallengeSection
-          pendingChallenges={pendingChallenges}
-          confirmChallenge={confirmChallenge}
-          formatTimeRemaining={formatTimeRemaining}
-        />
+            {/* Botones de Acción */}
+            <ActionButtons
+              isDialogOpen={isDialogOpen}
+              setIsDialogOpen={setIsDialogOpen}
+              isGroupMatchDialogOpen={isGroupMatchDialogOpen}
+              setIsGroupMatchDialogOpen={setIsGroupMatchDialogOpen}
+              isSuggestDialogOpen={isSuggestDialogOpen}
+              setIsSuggestDialogOpen={setIsSuggestDialogOpen}
+              selectedChallenger={selectedChallenger}
+              setSelectedChallenger={setSelectedChallenger}
+              selectedChallenged={selectedChallenged}
+              setSelectedChallenged={setSelectedChallenged}
+              allPlayers={user ? getPlayersForSuggestions() : allPlayers}
+              getAvailableOpponents={
+                user ? getAvailableOpponentsForLoggedUser : getAvailableOpponents
+              }
+              getHeadToHead={getHeadToHead}
+              createChallenge={createChallenge}
+              createSuggestion={createSuggestion}
+              handleCreateGroupMatch={handleCreateGroupMatch}
+            />
 
-        {/* Desafíos Confirmados Listos para Jugar */}
-        <PlayableChallengesSection
-          acceptedChallenges={realAcceptedChallenges}
-          confirmWinner={confirmWinner}
-          formatTimeRemaining={formatTimeRemaining}
-        />
+            {/* Desafíos Pendientes de Confirmación */}
+            <ChallengeSection
+              pendingChallenges={pendingChallenges}
+              confirmChallenge={confirmChallenge}
+              formatTimeRemaining={formatTimeRemaining}
+              isLoading={pendingLoading || false}
+            />
 
-        {/* Partidas Recientes */}
-        <RecentMatches
-          recentMatches={recentMatches}
-          cancelledChallenges={[]} // TODO: Implementar hook para desafíos cancelados
-          formatTimeAgo={formatTimeAgo}
-        />
-      </div>
-    </div>
+            {/* Desafíos Confirmados Listos para Jugar */}
+            <PlayableChallengesSection
+              acceptedChallenges={realAcceptedChallenges}
+              confirmWinner={confirmWinner}
+              formatTimeRemaining={formatTimeRemaining}
+              isLoading={acceptedLoading || false}
+            />
+
+            {/* Partidas Recientes */}
+            <RecentMatches
+              recentMatches={recentMatches}
+              cancelledChallenges={[]} // TODO: Implementar hook para desafíos cancelados
+              rejectedChallenges={rejectedChallenges}
+              formatTimeAgo={formatTimeAgo}
+              isLoading={recentLoading || false}
+            />
+          </div>
+        </div>
+      )}
+    </>
   )
 }

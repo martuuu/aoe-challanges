@@ -15,11 +15,18 @@ const config: Config = {
       },
       colors: {
         // Your custom color palette
+        cream: '#FEFAE0', // Color cream definido
         green: {
-          50: '#FEFAE0', // Light cream
-          100: '#B1AB86', // Medium beige-green
-          600: '#819067', // Medium green
-          700: '#0A400C', // Dark green
+          50: '#F5F8F2', // Muy claro
+          100: '#E8F0E0', // Claro
+          200: '#D1E2C2', // Medio claro
+          300: '#B8D3A0', // Medio
+          400: '#9BC482', // Medio oscuro
+          500: '#88AC6F', // Base
+          600: '#819067', // Medium green (referencia)
+          700: '#6B7855', // Oscuro intermedio
+          800: '#4A5239', // Muy oscuro
+          900: '#0A400C', // Dark green (referencia movida)
         },
         blue: {
           50: '#F9F3EF', // Light cream/beige

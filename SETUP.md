@@ -134,7 +134,8 @@ npm run db:seed
 
 - Solo se puede desafiar al mismo nivel o 1 nivel superior
 - Los jugadores están obligados a aceptar desafíos de niveles inferiores
-- Los desafíos expiran en 24 horas
+- Los desafíos expiran en 48 horas para ser aceptados
+- Una vez aceptados, tienen 1 semana para concretar el partido
 
 ### Cambios de Nivel
 
