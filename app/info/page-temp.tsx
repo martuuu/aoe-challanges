@@ -56,13 +56,11 @@ export default function InfoPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                  <span>
-                    Si ganas 2 veces consecutivas contra alguien de tu mismo nivel, subes un nivel
-                  </span>
+                  <span>Si ganas 2 veces contra alguien de tu mismo nivel, subes un nivel</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                  <span>Si pierdes 2 veces consecutivas en tu mismo nivel, bajas un nivel</span>
+                  <span>Si pierdes contra alguien de nivel inferior, intercambias posiciones</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <div className="w-2 h-2 bg-purple-500 rounded-full mt-1.5 flex-shrink-0"></div>

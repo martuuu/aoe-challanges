@@ -47,7 +47,7 @@ export const pyramidRules: PyramidRules = {
     return winnerLevel > loserLevel
   },
 
-  // Si le ganas dos veces al de tu mismo nivel, subes
+  // Si ganas dos veces contra alguien de tu mismo nivel, subes (no necesariamente consecutivas)
   shouldPromoteAfterTwoWins: (userId: string, userLevel: number, recentMatches: RecentMatch[]) => {
     if (userLevel === 1) return false // Ya está en el nivel más alto
 
@@ -57,9 +57,8 @@ export const pyramidRules: PyramidRules = {
         match.winnerId === userId && match.loserLevel === userLevel && match.type === 'challenge'
     )
 
-    // Verificar si tiene al menos 2 victorias consecutivas contra el mismo nivel
-    const recentSameLevelWins = sameLevelWins.slice(-2)
-    return recentSameLevelWins.length >= 2
+    // Verificar si tiene al menos 2 victorias contra el mismo nivel (no necesariamente consecutivas)
+    return sameLevelWins.length >= 2
   },
 }
 
@@ -103,14 +102,14 @@ export class PyramidService {
         })
       }
 
-      // Regla 2: Si le ganas dos veces al de tu mismo nivel, subes
+      // Regla 2: Si ganas dos veces contra alguien de tu mismo nivel, subes
       const recentMatches = await this.getRecentMatches(winnerId)
       if (pyramidRules.shouldPromoteAfterTwoWins(winnerId, winner.level, recentMatches)) {
         changes.push({
           userId: winnerId,
           oldLevel: winner.level,
           newLevel: winner.level - 1,
-          reason: 'Promoción por dos victorias consecutivas en el mismo nivel',
+          reason: 'Promoción por dos victorias contra el mismo nivel',
         })
       }
     }
@@ -178,7 +177,11 @@ export class PyramidService {
     if (reason.includes('inferior')) {
       return 'DEFEAT_DEMOTION'
     }
-    if (reason.includes('dos victorias') || reason.includes('consecutivas')) {
+    if (
+      reason.includes('dos victorias') ||
+      reason.includes('consecutivas') ||
+      reason.includes('mismo nivel')
+    ) {
       return 'VICTORY_PROMOTION'
     }
     return 'ADMIN_ADJUSTMENT'

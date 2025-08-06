@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Target, Trophy, Clock, Play, Users, Loader2 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useAuth } from '@/hooks/useAuth'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type AcceptedChallenge = {
   id: string
@@ -22,6 +22,7 @@ interface PlayableChallengesSectionProps {
   isLoading?: boolean
 }
 
+
 export function PlayableChallengesSection({
   acceptedChallenges,
   confirmWinner,
@@ -30,6 +31,16 @@ export function PlayableChallengesSection({
 }: PlayableChallengesSectionProps) {
   const { user } = useAuth()
   const [confirmingChallenge, setConfirmingChallenge] = useState<string | null>(null)
+  // Estado para el rol del usuario
+  const [userRole, setUserRole] = useState<'restricted' | 'normal'>('normal')
+
+  useEffect(() => {
+    if (user && (user.alias === 'Pana' || user.id === '7')) {
+      setUserRole('restricted')
+    } else {
+      setUserRole('normal')
+    }
+  }, [user])
 
   const isExpiringSoon = (expiresAt: string) => {
     const timeRemaining = new Date(expiresAt).getTime() - new Date().getTime()
@@ -147,33 +158,49 @@ export function PlayableChallengesSection({
 
                     {canDeclare && user && (
                       <div className="flex gap-2 sm:flex-col lg:flex-row">
-                        <Button
-                          size="sm"
-                          onClick={() => handleConfirmWinner(challenge.id, user.alias)}
-                          disabled={isConfirming}
-                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 disabled:bg-green-300"
-                        >
-                          {isConfirming ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trophy className="w-4 h-4" />
-                          )}
-                          {isConfirming ? 'Guardando...' : 'Gané'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleConfirmWinner(challenge.id, opponent)}
-                          disabled={isConfirming}
-                          className="border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center gap-1 disabled:border-gray-300 disabled:text-gray-400"
-                        >
-                          {isConfirming ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trophy className="w-4 h-4" />
-                          )}
-                          {isConfirming ? 'Guardando...' : `Ganó ${opponent}`}
-                        </Button>
+                        {userRole === 'restricted' ? (
+                          <Button
+                            variant="outline"
+                            onClick={() => handleConfirmWinner(challenge.id, opponent)}
+                            disabled={isConfirming}
+                            className="border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center gap-1 disabled:border-gray-300 disabled:text-gray-400"
+                          >
+                            {isConfirming ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trophy className="w-4 h-4" />
+                            )}
+                            {isConfirming ? 'Guardando...' : `Ganó ${opponent}`}
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              onClick={() => handleConfirmWinner(challenge.id, user.alias)}
+                              disabled={isConfirming}
+                              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 disabled:bg-green-300"
+                            >
+                              {isConfirming ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trophy className="w-4 h-4" />
+                              )}
+                              {isConfirming ? 'Guardando...' : 'Gané'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => handleConfirmWinner(challenge.id, opponent)}
+                              disabled={isConfirming}
+                              className="border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center gap-1 disabled:border-gray-300 disabled:text-gray-400"
+                            >
+                              {isConfirming ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trophy className="w-4 h-4" />
+                              )}
+                              {isConfirming ? 'Guardando...' : `Ganó ${opponent}`}
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
